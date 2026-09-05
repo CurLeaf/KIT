@@ -1,4 +1,5 @@
 .sentry-native/
+.superpowers/
 __pycache__/
 *.pyc
 .DS_Store

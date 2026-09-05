@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Goals · Engineering Goal Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="board" id="board">
+      <div class="board-sticky">
+        <header class="header">
+          <div class="brand">
+            <p class="brand-title"><span class="brand-mark"></span>GOALS</p>
+            <p class="brand-sub" id="board-sub">Engineering Goal Board</p>
+          </div>
+          <div class="clock">
+            <span class="clock-period" id="clock-period"></span>
+            <span class="clock-week" id="clock-week"></span>
+            <span class="clock-time" id="clock-time"></span>
+          </div>
+        </header>
+        <section class="summary" id="summary"></section>
+      </div>
+      <div class="main">
+        <section class="goals-section">
+          <h2 class="section-kicker">CURRENT GOALS</h2>
+          <div class="goal-list" id="goal-list"></div>
+        </section>
+      </div>
+      <section class="activity-section">
+        <h2 class="section-kicker">RECENT GOAL ACTIVITY</h2>
+        <div class="activity-list" id="activity-list"></div>
+      </section>
+    </div>
+    <script src="engine.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
