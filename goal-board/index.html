@@ -25,16 +25,28 @@
         </header>
         <section class="summary" id="summary"></section>
       </div>
-      <div class="main">
-        <section class="goals-section">
-          <h2 class="section-kicker">CURRENT GOALS</h2>
-          <div class="goal-list" id="goal-list"></div>
-        </section>
+      <div class="board-scroll" id="board-scroll">
+        <div class="board-scroll-inner">
+          <div class="main">
+            <section class="goals-section">
+              <h2 class="section-kicker">CURRENT GOALS</h2>
+              <div class="goal is-head" aria-hidden="true">
+                <div class="goal-id">ID</div>
+                <div class="goal-copy">目标</div>
+                <div class="goal-progress">进度</div>
+                <div class="goal-result">目标 → 当前</div>
+                <div class="owner">负责人</div>
+                <div class="status">状态</div>
+              </div>
+              <div class="goal-list" id="goal-list"></div>
+            </section>
+          </div>
+          <section class="activity-section">
+            <h2 class="section-kicker">RECENT GOAL ACTIVITY</h2>
+            <div class="activity-list" id="activity-list"></div>
+          </section>
+        </div>
       </div>
-      <section class="activity-section">
-        <h2 class="section-kicker">RECENT GOAL ACTIVITY</h2>
-        <div class="activity-list" id="activity-list"></div>
-      </section>
     </div>
     <script src="engine.js"></script>
     <script src="app.js"></script>

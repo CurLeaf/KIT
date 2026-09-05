@@ -4,6 +4,9 @@
   const E = window.GoalEngine
   const DATA_URL = 'data/goals.json'
   const REFRESH_MS = 5 * 60 * 1000
+  const SCROLL_PX_PER_SEC = 28
+  const END_HOLD_MS = 2000
+  const INTERACT_PAUSE_MS = 8000
 
   const els = {
     sub: document.getElementById('board-sub'),
@@ -13,12 +16,16 @@
     summary: document.getElementById('summary'),
     list: document.getElementById('goal-list'),
     activity: document.getElementById('activity-list'),
+    scroller: document.getElementById('board-scroll'),
   }
 
   const state = {
     meta: null,
     goals: [],
     sorted: [],
+    pausedUntil: 0,
+    endHoldUntil: 0,
+    lastTs: 0,
   }
 
   function pad(n) {
@@ -64,9 +71,9 @@
       </div>
       ${progressRow(goal.progress)}
       <div class="goal-result">
-        <span class="result-value">${E.formatTarget(goal.target)}</span>
+        <span class="result-target">${E.formatTarget(goal.target)}</span>
         <span class="result-sep">→</span>
-        <span class="result-value">${E.formatCurrent(goal.current, goal.target)}</span>
+        <span class="result-current">${E.formatCurrent(goal.current, goal.target)}</span>
       </div>
       ${ownerLine(goal.owner)}
       <span class="status status-${goal.status}">${statusLabel(goal.status)}</span>
@@ -102,6 +109,8 @@
       summaryItem(sum.atRisk, 'AT RISK'),
     ].join('')
     render()
+    if (els.scroller) els.scroller.scrollTop = 0
+    state.endHoldUntil = 0
   }
 
   async function load({ force }) {
@@ -112,11 +121,50 @@
     hydrate(data)
   }
 
+  function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }
+
+  function pauseAuto() {
+    state.pausedUntil = performance.now() + INTERACT_PAUSE_MS
+  }
+
+  function tickScroll() {
+    const ts = performance.now()
+    if (!state.lastTs) state.lastTs = ts
+    const dt = Math.min(64, ts - state.lastTs)
+    state.lastTs = ts
+    const scroller = els.scroller
+    if (scroller && !prefersReducedMotion()) {
+      const max = scroller.scrollHeight - scroller.clientHeight
+      if (max > 0 && ts >= state.pausedUntil) {
+        if (state.endHoldUntil && ts >= state.endHoldUntil) {
+          scroller.scrollTop = 0
+          state.endHoldUntil = 0
+        } else if (!state.endHoldUntil) {
+          const next = scroller.scrollTop + SCROLL_PX_PER_SEC * (dt / 1000)
+          if (next >= max) {
+            scroller.scrollTop = max
+            state.endHoldUntil = ts + END_HOLD_MS
+          } else {
+            scroller.scrollTop = next
+          }
+        }
+      }
+    }
+    window.requestAnimationFrame(tickScroll)
+  }
+
   tickClock()
   window.setInterval(tickClock, 1000)
   window.setInterval(() => {
     load({ force: false }).catch((err) => console.warn(err))
   }, REFRESH_MS)
+  if (els.scroller) {
+    els.scroller.addEventListener('pointerenter', pauseAuto)
+    els.scroller.addEventListener('wheel', pauseAuto, { passive: true })
+  }
+  window.requestAnimationFrame(tickScroll)
   load({ force: true }).catch((err) => {
     els.sub.textContent = 'Failed to load goals.json'
     console.warn(err)
