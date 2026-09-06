@@ -215,6 +215,83 @@ function phaseLabel(step, cycle) {
   return `${step.phase}  ·  ${n} / ${group.length}`
 }
 
+function advanceAutoScroll(top, max, carry, dt, speed) {
+  if (max <= 0) return { top, carry: 0, wrapped: false }
+  const nextCarry = carry + speed * (dt / 1000)
+  const step = Math.floor(nextCarry)
+  const remain = nextCarry - step
+  if (step < 1) return { top, carry: remain, wrapped: false }
+  const next = top + step
+  if (next >= max) return { top: max, carry: 0, wrapped: true }
+  return { top: next, carry: remain, wrapped: false }
+}
+
+function wrapLoopScroll(top, loopHeight) {
+  if (loopHeight <= 0) return top
+  return top % loopHeight
+}
+
+function resumeAutoTop(from, next, loopHeight, hitEnd) {
+  if (loopHeight <= 0) return next
+  if (hitEnd || (from < loopHeight && next >= loopHeight)) {
+    return wrapLoopScroll(next, loopHeight)
+  }
+  return next
+}
+
+function sightRowIndex(scrollTop, rowHeight, count) {
+  if (rowHeight <= 0 || count <= 0) return 0
+  const i = Math.round(scrollTop / rowHeight)
+  return ((i % count) + count) % count
+}
+
+function drumRowHeight(viewportHeight, slots = 3) {
+  const n = Math.max(1, slots)
+  return Math.floor(Math.max(0, viewportHeight) / n)
+}
+
+function drumPad(viewportHeight, rowHeight) {
+  if (rowHeight <= 0) return 0
+  return Math.max(0, Math.round((viewportHeight - rowHeight) / 2))
+}
+
+function drumCardHeight() {
+  return 128
+}
+
+function todayDataPath(now = new Date()) {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `data/${y}-${m}-${d}.json`
+}
+
+function snapTop(scrollTop, rowHeight) {
+  if (rowHeight <= 0) return scrollTop
+  return Math.round(scrollTop / rowHeight) * rowHeight
+}
+
+function ratchetEase(t) {
+  const x = Math.max(0, Math.min(1, t))
+  return x < 0.5
+    ? 4 * x * x * x
+    : 1 - ((-2 * x + 2) ** 3) / 2
+}
+
+function ratchetTop(fromSnap, rowHeight, elapsed, holdMs, moveMs, loopHeight) {
+  if (rowHeight <= 0) return { top: fromSnap, done: true, wrapped: false }
+  if (elapsed <= holdMs) return { top: fromSnap, done: false, wrapped: false }
+  const span = Math.max(1, moveMs)
+  const t = Math.min(1, (elapsed - holdMs) / span)
+  const dest = fromSnap + rowHeight
+  const top = fromSnap + (dest - fromSnap) * ratchetEase(t)
+  if (t < 1) return { top, done: false, wrapped: false }
+  if (loopHeight > 0 && dest >= loopHeight) {
+    return { top: dest - loopHeight, done: true, wrapped: true }
+  }
+  return { top: dest, done: true, wrapped: false }
+}
+
 const GoalEngine = {
   sortGoals,
   focusScore,
@@ -232,6 +309,17 @@ const GoalEngine = {
   nextStepIndex,
   stepDuration,
   phaseLabel,
+  advanceAutoScroll,
+  wrapLoopScroll,
+  resumeAutoTop,
+  sightRowIndex,
+  drumRowHeight,
+  drumPad,
+  drumCardHeight,
+  todayDataPath,
+  snapTop,
+  ratchetEase,
+  ratchetTop,
 }
 
 if (typeof module !== 'undefined' && module.exports) {

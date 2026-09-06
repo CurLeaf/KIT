@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "1.0",
+  "meta": {
+    "title": "工程目标看板",
+    "period": "2026 年 9 月 6 日",
+    "week": 36,
+    "updatedAt": "2026-09-06T11:33:00+08:00"
+  },
+  "goals": [
+    {
+      "id": "GOAL-101",
+      "title": "数据大盘调整",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "discuss",
+      "stages": {
+        "develop": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-06", "dueAt": "2026-09-06" },
+      "update": { "text": "今日启动数据大盘调整", "updatedAt": "2026-09-06T10:57:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-06T10:57:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-102",
+      "title": "平台商品卡的全链路适配",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "discuss",
+      "stages": {
+        "develop": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-06", "dueAt": "2026-09-06" },
+      "update": { "text": "今日推进平台商品卡全链路适配", "updatedAt": "2026-09-06T10:57:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-06T10:57:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-103",
+      "title": "检查平台标识在线上是否全部变更",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "discuss",
+      "stages": {
+        "develop": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-06", "dueAt": "2026-09-06" },
+      "update": { "text": "今日核对线上平台标识是否已全部变更", "updatedAt": "2026-09-06T10:57:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-06T10:57:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-104",
+      "title": "私域商城的全套迁移",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "discuss",
+      "stages": {
+        "develop": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-06", "dueAt": "2026-09-06" },
+      "update": { "text": "今日推进私域商城全套迁移", "updatedAt": "2026-09-06T10:57:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-06T10:57:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-105",
+      "title": "整理昨天的开会纪要",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "discuss",
+      "stages": {
+        "develop": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-06", "dueAt": "2026-09-06" },
+      "update": { "text": "今日整理昨日会议纪要", "updatedAt": "2026-09-06T10:57:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-06T10:57:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-106",
+      "title": "仓库到供应商的数据迁移",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "discuss",
+      "stages": {
+        "develop": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-06", "dueAt": "2026-09-06" },
+      "update": { "text": "今日推进仓库到供应商的数据迁移", "updatedAt": "2026-09-06T10:57:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-06T10:57:00+08:00" }
+      ]
+    }
+  ]
+}

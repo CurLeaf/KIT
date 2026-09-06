@@ -151,6 +151,76 @@ test('shouldReplace keys off meta.updatedAt', () => {
   assert.equal(E.shouldReplace({ updatedAt: 'a' }, { updatedAt: 'b' }), true)
 })
 
+test('advanceAutoScroll keeps subpixel carry until a full pixel', () => {
+  const first = E.advanceAutoScroll(0, 500, 0, 16, 28)
+  assert.equal(first.top, 0)
+  assert.ok(first.carry > 0)
+  let cur = first
+  for (let i = 0; i < 10; i += 1) {
+    cur = E.advanceAutoScroll(cur.top, 500, cur.carry, 16, 28)
+  }
+  assert.ok(cur.top >= 1)
+})
+
+test('wrapLoopScroll subtracts a cycle instead of jumping to zero', () => {
+  assert.equal(E.wrapLoopScroll(400, 350), 50)
+  assert.equal(E.wrapLoopScroll(350, 350), 0)
+  assert.equal(E.wrapLoopScroll(50, 350), 50)
+  assert.equal(E.wrapLoopScroll(100, 0), 100)
+})
+
+test('resumeAutoTop keeps going from the current thumb position', () => {
+  assert.equal(E.resumeAutoTop(340, 360, 350, false), 10)
+  assert.equal(E.resumeAutoTop(1400, 1416, 350, false), 1416)
+  assert.equal(E.resumeAutoTop(1400, 1800, 350, true), 50)
+  assert.equal(E.resumeAutoTop(80, 96, 350, false), 96)
+})
+
+test('sightRowIndex picks the slot nearest the sight line', () => {
+  assert.equal(E.sightRowIndex(0, 200, 10), 0)
+  assert.equal(E.sightRowIndex(99, 200, 10), 0)
+  assert.equal(E.sightRowIndex(100, 200, 10), 1)
+  assert.equal(E.sightRowIndex(200, 200, 10), 1)
+  assert.equal(E.sightRowIndex(2000, 200, 10), 0)
+  assert.equal(E.sightRowIndex(0, 0, 10), 0)
+  assert.equal(E.sightRowIndex(200, 200, 0), 0)
+})
+
+test('drumPad centers one row in the viewport', () => {
+  assert.equal(E.drumPad(600, 200), 200)
+  assert.equal(E.drumPad(200, 200), 0)
+  assert.equal(E.drumPad(100, 200), 0)
+  assert.equal(E.drumRowHeight(600, 3), 200)
+  assert.equal(E.drumRowHeight(601, 3), 200)
+  assert.equal(E.drumCardHeight(), 128)
+})
+
+test('todayDataPath uses only the local calendar day', () => {
+  assert.equal(E.todayDataPath(new Date(2026, 8, 6, 1, 15, 0)), 'data/2026-09-06.json')
+  assert.equal(E.todayDataPath(new Date(2026, 8, 5, 23, 59, 0)), 'data/2026-09-05.json')
+  assert.notEqual(
+    E.todayDataPath(new Date(2026, 8, 6, 0, 0, 0)),
+    E.todayDataPath(new Date(2026, 8, 5, 0, 0, 0)),
+  )
+})
+
+test('snapTop locks to the nearest card slot', () => {
+  assert.equal(E.snapTop(0, 128), 0)
+  assert.equal(E.snapTop(60, 128), 0)
+  assert.equal(E.snapTop(64, 128), 128)
+  assert.equal(E.snapTop(200, 128), 256)
+  assert.equal(E.snapTop(90, 0), 90)
+})
+
+test('ratchetTop holds then eases to the next slot', () => {
+  assert.deepEqual(E.ratchetTop(0, 128, 100, 2000, 400, 1280), { top: 0, done: false, wrapped: false })
+  const mid = E.ratchetTop(0, 128, 2200, 2000, 400, 1280)
+  assert.equal(mid.done, false)
+  assert.equal(Math.round(mid.top), 64)
+  assert.deepEqual(E.ratchetTop(0, 128, 2400, 2000, 400, 1280), { top: 128, done: true, wrapped: false })
+  assert.deepEqual(E.ratchetTop(1152, 128, 2400, 2000, 400, 1280), { top: 0, done: true, wrapped: true })
+})
+
 test('buildCycle and phaseLabel form a predictable loop', () => {
   const cycle = E.buildCycle(2, 3)
   assert.deepEqual(cycle.map((s) => s.phase), [

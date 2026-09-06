@@ -3,52 +3,39 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Goals · Engineering Goal Board</title>
+    <title>目标看板</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=16" />
   </head>
   <body>
     <div class="board" id="board">
       <div class="board-sticky">
         <header class="header">
           <div class="brand">
-            <p class="brand-title"><span class="brand-mark"></span>GOALS</p>
-            <p class="brand-sub" id="board-sub">Engineering Goal Board</p>
+            <p class="brand-title"><span class="brand-mark"></span><span id="board-title">目标看板</span></p>
           </div>
+          <section class="summary" id="summary"></section>
           <div class="clock">
             <span class="clock-period" id="clock-period"></span>
             <span class="clock-week" id="clock-week"></span>
             <span class="clock-time" id="clock-time"></span>
           </div>
         </header>
-        <section class="summary" id="summary"></section>
       </div>
-      <div class="board-scroll" id="board-scroll">
-        <div class="board-scroll-inner">
-          <div class="main">
-            <section class="goals-section">
-              <h2 class="section-kicker">CURRENT GOALS</h2>
-              <div class="goal is-head" aria-hidden="true">
-                <div class="goal-id">ID</div>
-                <div class="goal-copy">目标</div>
-                <div class="goal-progress">进度</div>
-                <div class="goal-result">目标 → 当前</div>
-                <div class="owner">负责人</div>
-                <div class="status">状态</div>
-              </div>
+      <div class="board-drum" id="board-drum">
+        <div class="sight-band" aria-hidden="true"></div>
+        <div class="board-scroll" id="board-scroll">
+          <div id="board-loop">
+            <div class="board-scroll-inner" id="board-scroll-inner">
               <div class="goal-list" id="goal-list"></div>
-            </section>
+            </div>
           </div>
-          <section class="activity-section">
-            <h2 class="section-kicker">RECENT GOAL ACTIVITY</h2>
-            <div class="activity-list" id="activity-list"></div>
-          </section>
         </div>
       </div>
     </div>
-    <script src="engine.js"></script>
-    <script src="app.js"></script>
+    <script src="engine.js?v=13"></script>
+    <script src="app.js?v=16"></script>
   </body>
 </html>
