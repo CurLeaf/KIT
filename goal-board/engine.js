@@ -32,7 +32,9 @@ function formatMeasure(value, unit, operator) {
 function sortGoals(goals, now = Date.now()) {
   void now
   return [...goals].sort((a, b) => {
-    const rank = (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99)
+    const rank =
+      (STATUS_RANK[a.status] != null ? STATUS_RANK[a.status] : 99) -
+      (STATUS_RANK[b.status] != null ? STATUS_RANK[b.status] : 99)
     if (rank !== 0) return rank
     const dueA = parseTime(a.timeline && a.timeline.dueAt)
     const dueB = parseTime(b.timeline && b.timeline.dueAt)

@@ -453,46 +453,53 @@ function Format-SizeMB {
     return ("{0} MB" -f $mb)
 }
 
-function Get-DockerStackProcesses {
-    $names = @(
+function Get-DockerStackProcessNames {
+    return @(
         "Docker Desktop",
         "com.docker.backend",
         "com.docker.build",
         "com.docker.proxy",
-        "docker"
+        "com.docker.dev-envs",
+        "com.docker.extensions",
+        "vpnkit",
+        "docker",
+        "docker-compose"
     )
-    Get-Process -Name $names -ErrorAction SilentlyContinue
+}
+
+function Get-DockerStackProcesses {
+    Get-Process -Name (Get-DockerStackProcessNames) -ErrorAction SilentlyContinue
+}
+
+function Stop-ProcessImagesForce {
+    param([string[]]$ImageNames)
+
+    foreach ($image in $ImageNames) {
+        Write-Host ("    taskkill /F /T /IM {0}" -f $image) -ForegroundColor DarkGray
+        & taskkill.exe /F /T /IM $image 2>$null | Out-Null
+    }
 }
 
 function Stop-DockerDesktopFully {
     param([int]$WaitSeconds = 20)
 
-    $running = @(Get-DockerStackProcesses)
-    if ($running.Count -eq 0) {
-        Write-Host "  Docker Desktop stack is not running" -ForegroundColor Gray
-        return $true
-    }
+    Write-Host "  Force-stopping Docker Desktop stack..." -ForegroundColor Gray
 
-    Write-Host "  Stopping Docker Desktop UI and backend processes..." -ForegroundColor Gray
-    foreach ($proc in $running) {
-        Write-Host ("    stopping {0} (PID {1})" -f $proc.ProcessName, $proc.Id) -ForegroundColor DarkGray
-    }
-
-    # Prefer graceful quit for UI first, then force-kill leftovers
-    Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue |
-        ForEach-Object {
-            try { $_.CloseMainWindow() | Out-Null } catch { }
-        }
-    Start-Sleep -Seconds 3
-
-    Get-DockerStackProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-
-    # Stop Windows service if present (may require admin)
     $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
     if ($svc -and $svc.Status -ne "Stopped") {
         Write-Host "  Stopping com.docker.service..." -ForegroundColor Gray
         try { Stop-Service -Name "com.docker.service" -Force -ErrorAction Stop } catch { }
     }
+
+    $images = @(Get-DockerStackProcessNames | ForEach-Object { "$_.exe" })
+    Stop-ProcessImagesForce -ImageNames $images
+
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '(?i)docker|vpnkit' } |
+        ForEach-Object {
+            Write-Host ("    taskkill /F /T /PID {0} ({1})" -f $_.ProcessId, $_.Name) -ForegroundColor DarkGray
+            & taskkill.exe /F /T /PID $_.ProcessId 2>$null | Out-Null
+        }
 
     $deadline = (Get-Date).AddSeconds($WaitSeconds)
     while ((Get-Date) -lt $deadline) {
@@ -501,6 +508,7 @@ function Stop-DockerDesktopFully {
             Write-Host "  Docker Desktop stack fully stopped" -ForegroundColor Green
             return $true
         }
+        Stop-ProcessImagesForce -ImageNames $images
         $left | Stop-Process -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 1
     }
@@ -518,11 +526,77 @@ function Stop-DockerDesktopFully {
     return $true
 }
 
+function Get-DockerDesktopExe {
+    $candidates = @(
+        (Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"),
+        "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    )
+    foreach ($path in $candidates) {
+        if ($path -and (Test-Path -LiteralPath $path)) {
+            return $path
+        }
+    }
+    return $null
+}
+
+function Start-DockerDesktopFully {
+    param([int]$TimeoutSeconds = 180)
+
+    if (Test-DockerDaemonReady -TimeoutSeconds 8) {
+        Write-Host "  Docker daemon already ready" -ForegroundColor Green
+        return $true
+    }
+
+    $running = @(Get-DockerStackProcesses)
+    if ($running.Count -gt 0) {
+        Write-Host "  Docker stack is up but daemon is not ready. Restarting stack..." -ForegroundColor Yellow
+        $null = Stop-DockerDesktopFully
+        Start-Sleep -Seconds 2
+    }
+
+    $svc = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
+    if ($svc -and $svc.Status -ne "Running") {
+        Write-Host "  Starting com.docker.service..." -ForegroundColor Gray
+        try { Start-Service -Name "com.docker.service" -ErrorAction Stop } catch { }
+    }
+
+    $exe = Get-DockerDesktopExe
+    if (-not $exe) {
+        Write-Host "  ERROR: Docker Desktop.exe not found" -ForegroundColor Red
+        return $false
+    }
+
+    Write-Host ("  Starting {0}" -f $exe) -ForegroundColor Gray
+    Start-Process -FilePath $exe
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $startedWsl = $false
+    while ((Get-Date) -lt $deadline) {
+        $wslText = (wsl -l -v 2>&1 | Out-String)
+        if (-not $startedWsl -and $wslText -notmatch 'docker-desktop\s+Running') {
+            Write-Host "  Starting WSL distro docker-desktop..." -ForegroundColor Gray
+            & wsl.exe -d docker-desktop -e echo wsl-ok 2>$null | Out-Null
+            $startedWsl = $true
+        }
+        if (Test-DockerDaemonReady -TimeoutSeconds 8) {
+            Write-Host "  Docker daemon is ready" -ForegroundColor Green
+            return $true
+        }
+        Start-Sleep -Seconds 3
+    }
+
+    Write-Host "  ERROR: Docker daemon did not become ready within ${TimeoutSeconds}s" -ForegroundColor Red
+    return $false
+}
+
 function Stop-WslFully {
     param([int]$WaitSeconds = 30)
 
     Write-Host "  Sending wsl --shutdown..." -ForegroundColor Gray
     wsl --shutdown 2>$null
+
+    $wslImages = @("vmmemWSL.exe", "vmmem.exe", "wsl.exe", "wslhost.exe", "wslrelay.exe")
+    Stop-ProcessImagesForce -ImageNames $wslImages
 
     $deadline = (Get-Date).AddSeconds($WaitSeconds)
     while ((Get-Date) -lt $deadline) {
@@ -533,6 +607,7 @@ function Stop-WslFully {
             Write-Host "  WSL fully stopped" -ForegroundColor Green
             return $true
         }
+        Stop-ProcessImagesForce -ImageNames $wslImages
         Start-Sleep -Seconds 1
     }
 
@@ -663,8 +738,13 @@ if (-not $compact1Ok -or -not $compact2Ok) {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "You can restart Docker Desktop now." -ForegroundColor Green
+Write-Host "Starting Docker Desktop..." -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
+if (Start-DockerDesktopFully) {
+    Write-Host "Docker Desktop is ready." -ForegroundColor Green
+} else {
+    Write-Host "WARNING: Docker Desktop did not become ready. Start it from the Start menu, then retry bun docker." -ForegroundColor Yellow
+}
 
 Write-Host ""
 Read-Host "Press Enter to exit"

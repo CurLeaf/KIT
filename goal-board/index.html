@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=16" />
+    <link rel="stylesheet" href="styles.css?v=18" />
   </head>
   <body>
     <div class="board" id="board">
@@ -23,6 +23,15 @@
             <span class="clock-time" id="clock-time"></span>
           </div>
         </header>
+        <div class="goal-cols" aria-hidden="true">
+          <span class="goal-col-no">序号</span>
+          <span class="goal-col-title">目标</span>
+          <div class="goal-stages">
+            <span>讨论</span>
+            <span>开发</span>
+            <span>验收</span>
+          </div>
+        </div>
       </div>
       <div class="board-drum" id="board-drum">
         <div class="sight-band" aria-hidden="true"></div>
@@ -35,7 +44,7 @@
         </div>
       </div>
     </div>
-    <script src="engine.js?v=13"></script>
-    <script src="app.js?v=16"></script>
+    <script src="engine.js?v=14"></script>
+    <script src="app.js?v=18"></script>
   </body>
 </html>

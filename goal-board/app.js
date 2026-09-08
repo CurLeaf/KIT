@@ -1,6 +1,9 @@
 'use strict'
 
 ;(function () {
+  if (typeof NodeList !== 'undefined' && NodeList.prototype && !NodeList.prototype.forEach) {
+    NodeList.prototype.forEach = Array.prototype.forEach
+  }
   const E = window.GoalEngine
   const REFRESH_MS = 5 * 60 * 1000
   const RATCHET_HOLD_MS = 2400
@@ -52,7 +55,7 @@
 
   function renderStages(goal) {
     const current = goal.stage || 'discuss'
-    const currentRank = STAGE_RANK[current] ?? 0
+    const currentRank = STAGE_RANK[current] != null ? STAGE_RANK[current] : 0
     return `<div class="goal-stages">${STAGE_KEYS.map((s) => {
       const owner = goal.stages && goal.stages[s.key] && goal.stages[s.key].owner
       const name = (owner && owner.name) || ''
@@ -66,12 +69,19 @@
     }).join('')}</div>`
   }
 
+  function circledNo(index) {
+    const n = index + 1
+    if (n >= 1 && n <= 20) return String.fromCharCode(0x245F + n)
+    return String(n)
+  }
+
   function renderGoalRow(goal, index) {
     const risk = goal.status === 'at_risk'
     const note = goal.update && goal.update.text
       ? `<p class="goal-update">${goal.update.text}</p>`
       : ''
     return `<article class="goal${risk ? ' is-risk' : ''}" data-index="${index}">
+      <span class="goal-no">${circledNo(index)}</span>
       <div class="goal-copy">
         <h3 class="goal-title">${goal.title}</h3>
         ${note}
@@ -131,7 +141,8 @@
       }
     })
     cards.forEach((node) => {
-      node.classList.toggle('is-current', node === nearest)
+      if (node === nearest) node.classList.add('is-current')
+      else node.classList.remove('is-current')
     })
   }
 
@@ -215,17 +226,20 @@
   window.setInterval(() => {
     load({ force: false }).catch((err) => console.warn(err))
   }, REFRESH_MS)
+  function onDrumResize() {
+    if (!state.sorted.length) return
+    const idx = E.sightRowIndex(state.fromSnap, state.rowHeight, state.sorted.length)
+    layoutDrum()
+    syncLoopClone()
+    state.fromSnap = idx * state.rowHeight
+    state.ratchetAt = 0
+    els.scroller.scrollTop = state.fromSnap
+    markCurrent()
+  }
   if (els.drum && typeof ResizeObserver !== 'undefined') {
-    new ResizeObserver(() => {
-      if (!state.sorted.length) return
-      const idx = E.sightRowIndex(state.fromSnap, state.rowHeight, state.sorted.length)
-      layoutDrum()
-      syncLoopClone()
-      state.fromSnap = idx * state.rowHeight
-      state.ratchetAt = 0
-      els.scroller.scrollTop = state.fromSnap
-      markCurrent()
-    }).observe(els.drum)
+    new ResizeObserver(onDrumResize).observe(els.drum)
+  } else {
+    window.addEventListener('resize', onDrumResize)
   }
   if (els.scroller) {
     els.scroller.addEventListener('wheel', (event) => {

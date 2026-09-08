@@ -70,6 +70,7 @@ html, body {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  padding: 24px 48px;
   padding: var(--space-6) clamp(32px, 3vw, 72px) var(--space-6);
   overflow: hidden;
 }
@@ -156,7 +157,12 @@ html, body {
 
 .board-scroll {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   overflow: auto;
   scrollbar-width: none;
 }
@@ -183,14 +189,31 @@ html, body {
   flex-direction: column;
 }
 
+.goal-cols,
 .goal {
   display: grid;
-  grid-template-columns: minmax(280px, 1.2fr) minmax(320px, 1.6fr);
+  grid-template-columns: 56px minmax(240px, 1.2fr) minmax(320px, 1.6fr);
   align-items: center;
   column-gap: var(--space-8);
+  margin: 0 112px;
+  padding: 0 var(--space-6);
+}
+
+.goal-cols {
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.goal-cols .goal-col-no,
+.goal-cols .goal-stages span {
+  text-align: center;
+}
+
+.goal {
   height: var(--drum-row, 128px);
   min-height: 0;
-  margin: 0 112px;
   padding: var(--space-4) var(--space-6);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -200,6 +223,14 @@ html, body {
   transform: scale(0.72);
   transform-origin: center center;
   transition: transform 560ms cubic-bezier(0.45, 0, 0.2, 1), opacity 420ms ease;
+}
+
+.goal-no {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 .goal.is-current {
