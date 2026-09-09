@@ -4,7 +4,7 @@ description: >-
   按方案落地：先查根因，测试先行，宣称完成前给出本轮命令输出。
   Use when implementing features or bugfixes, user says 直接做,
   /execute, about to claim 做完 / 修好 / 通过 / tests pass, or following a
-  plan swimlane opening message. Skip when committing (no tests here).
+  plan swimlane opening message. Skip when committing (git-commit; no tests here).
 ---
 
 # 方案执行
@@ -12,7 +12,7 @@ description: >-
 一次执行两闸：先红后绿；没有本轮跑出来的命令输出，不准说做完。
 修 bug / 测试红 / 意外行为：根因没查清不准改。
 
-对用户说简体中文。本层不 commit、不跑提交闸；提交等用户明确要求。
+对用户说简体中文。提交走 `/git-commit`，本层不 commit、不跑提交闸。
 
 ## 何时用 / 跳过
 
@@ -20,7 +20,7 @@ description: >-
 
 **跳过**：
 
-- 用户要求提交 / PR：本层不 commit
+- 用户要求提交 / PR：走 `/git-commit`（本层不 commit）
 - 纯问答、查代码、本机排障
 - `require-ana/` 会议三件套：走 `.cursor/rules/require-ana.mdc`，不代替实现
 

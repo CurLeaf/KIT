@@ -29,9 +29,21 @@ function formatMeasure(value, unit, operator) {
   return op ? `${op} ${body}` : String(body)
 }
 
+function goalsByStage(goals, now = Date.now()) {
+  const sorted = sortGoals(goals, now)
+  const buckets = { discuss: [], develop: [], accept: [] }
+  for (let i = 0; i < sorted.length; i += 1) {
+    const g = sorted[i]
+    if (g.status === 'completed') continue
+    const key = g.stage && buckets[g.stage] ? g.stage : 'discuss'
+    buckets[key].push(g)
+  }
+  return buckets
+}
+
 function sortGoals(goals, now = Date.now()) {
   void now
-  return [...goals].sort((a, b) => {
+  return goals.slice().sort((a, b) => {
     const rank =
       (STATUS_RANK[a.status] != null ? STATUS_RANK[a.status] : 99) -
       (STATUS_RANK[b.status] != null ? STATUS_RANK[b.status] : 99)
@@ -87,7 +99,7 @@ function focusScore(goal, now = Date.now()) {
 
 function pickFocus(goals, limit = 3, now = Date.now()) {
   const n = Math.min(3, Math.max(0, limit))
-  return [...goals]
+  return goals.slice()
     .sort((a, b) => {
       const delta = focusScore(b, now) - focusScore(a, now)
       if (delta !== 0) return delta
@@ -261,10 +273,15 @@ function drumCardHeight() {
   return 128
 }
 
+function pad2(n) {
+  const s = String(n)
+  return s.length >= 2 ? s : `0${s}`
+}
+
 function todayDataPath(now = new Date()) {
   const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
+  const m = pad2(now.getMonth() + 1)
+  const d = pad2(now.getDate())
   return `data/${y}-${m}-${d}.json`
 }
 
@@ -277,7 +294,7 @@ function ratchetEase(t) {
   const x = Math.max(0, Math.min(1, t))
   return x < 0.5
     ? 4 * x * x * x
-    : 1 - ((-2 * x + 2) ** 3) / 2
+    : 1 - Math.pow(-2 * x + 2, 3) / 2
 }
 
 function ratchetTop(fromSnap, rowHeight, elapsed, holdMs, moveMs, loopHeight) {
@@ -296,6 +313,7 @@ function ratchetTop(fromSnap, rowHeight, elapsed, holdMs, moveMs, loopHeight) {
 
 const GoalEngine = {
   sortGoals,
+  goalsByStage,
   focusScore,
   pickFocus,
   visibleGoalCount,

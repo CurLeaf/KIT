@@ -198,6 +198,7 @@ test('drumPad centers one row in the viewport', () => {
 test('todayDataPath uses only the local calendar day', () => {
   assert.equal(E.todayDataPath(new Date(2026, 8, 6, 1, 15, 0)), 'data/2026-09-06.json')
   assert.equal(E.todayDataPath(new Date(2026, 8, 5, 23, 59, 0)), 'data/2026-09-05.json')
+  assert.equal(E.todayDataPath(new Date(2026, 8, 9, 10, 18, 0)), 'data/2026-09-09.json')
   assert.notEqual(
     E.todayDataPath(new Date(2026, 8, 6, 0, 0, 0)),
     E.todayDataPath(new Date(2026, 8, 5, 0, 0, 0)),
@@ -219,6 +220,28 @@ test('ratchetTop holds then eases to the next slot', () => {
   assert.equal(Math.round(mid.top), 64)
   assert.deepEqual(E.ratchetTop(0, 128, 2400, 2000, 400, 1280), { top: 128, done: true, wrapped: false })
   assert.deepEqual(E.ratchetTop(1152, 128, 2400, 2000, 400, 1280), { top: 0, done: true, wrapped: true })
+})
+
+test('goalsByStage buckets by stage and hides completed', () => {
+  const rows = E.goalsByStage([
+    goal({ id: 'D', stage: 'discuss', status: 'on_track' }),
+    goal({ id: 'V', stage: 'develop', status: 'on_track' }),
+    goal({ id: 'A', stage: 'accept', status: 'on_track' }),
+    goal({ id: 'X', stage: 'develop', status: 'completed', progress: 100 }),
+    goal({ id: 'R', stage: 'discuss', status: 'at_risk', progress: 10 }),
+  ], NOW)
+  assert.deepEqual(rows.discuss.map((g) => g.id), ['R', 'D'])
+  assert.deepEqual(rows.develop.map((g) => g.id), ['V'])
+  assert.deepEqual(rows.accept.map((g) => g.id), ['A'])
+})
+
+test('goalsByStage treats missing stage as discuss', () => {
+  const rows = E.goalsByStage([
+    goal({ id: 'N', status: 'on_track' }),
+  ], NOW)
+  assert.deepEqual(rows.discuss.map((g) => g.id), ['N'])
+  assert.deepEqual(rows.develop, [])
+  assert.deepEqual(rows.accept, [])
 })
 
 test('buildCycle and phaseLabel form a predictable loop', () => {

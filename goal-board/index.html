@@ -7,44 +7,46 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=18" />
+    <link rel="stylesheet" href="styles.css?v=21" />
   </head>
   <body>
     <div class="board" id="board">
-      <div class="board-sticky">
-        <header class="header">
-          <div class="brand">
-            <p class="brand-title"><span class="brand-mark"></span><span id="board-title">目标看板</span></p>
-          </div>
-          <section class="summary" id="summary"></section>
-          <div class="clock">
-            <span class="clock-period" id="clock-period"></span>
-            <span class="clock-week" id="clock-week"></span>
-            <span class="clock-time" id="clock-time"></span>
-          </div>
-        </header>
-        <div class="goal-cols" aria-hidden="true">
-          <span class="goal-col-no">序号</span>
-          <span class="goal-col-title">目标</span>
-          <div class="goal-stages">
-            <span>讨论</span>
-            <span>开发</span>
-            <span>验收</span>
-          </div>
+      <header class="header">
+        <div class="brand">
+          <p class="brand-title"><span class="brand-mark"></span><span id="board-title">目标看板</span></p>
         </div>
-      </div>
-      <div class="board-drum" id="board-drum">
-        <div class="sight-band" aria-hidden="true"></div>
-        <div class="board-scroll" id="board-scroll">
-          <div id="board-loop">
-            <div class="board-scroll-inner" id="board-scroll-inner">
-              <div class="goal-list" id="goal-list"></div>
-            </div>
-          </div>
+        <section class="summary" id="summary"></section>
+        <div class="clock">
+          <span class="clock-period" id="clock-period"></span>
+          <span class="clock-week" id="clock-week"></span>
+          <span class="clock-time" id="clock-time"></span>
         </div>
+      </header>
+      <div class="kanban" id="kanban">
+        <section class="column" data-stage="discuss">
+          <div class="column-head">
+            <h2>讨论</h2>
+            <span class="column-count" id="count-discuss">0</span>
+          </div>
+          <div class="column-notes" id="col-discuss"></div>
+        </section>
+        <section class="column" data-stage="develop">
+          <div class="column-head">
+            <h2>开发</h2>
+            <span class="column-count" id="count-develop">0</span>
+          </div>
+          <div class="column-notes" id="col-develop"></div>
+        </section>
+        <section class="column" data-stage="accept">
+          <div class="column-head">
+            <h2>验收</h2>
+            <span class="column-count" id="count-accept">0</span>
+          </div>
+          <div class="column-notes" id="col-accept"></div>
+        </section>
       </div>
     </div>
-    <script src="engine.js?v=14"></script>
-    <script src="app.js?v=18"></script>
+    <script src="engine.js?v=15"></script>
+    <script src="app.js?v=21"></script>
   </body>
 </html>

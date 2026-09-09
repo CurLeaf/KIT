@@ -1,0 +1,209 @@
+{
+  "schemaVersion": "1.0",
+  "meta": {
+    "title": "工程目标看板",
+    "period": "2026 年 9 月 9 日",
+    "week": 37,
+    "updatedAt": "2026-09-09T10:16:00+08:00"
+  },
+  "goals": [
+    {
+      "id": "GOAL-102",
+      "title": "平台商品卡的全链路适配",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "accept",
+      "stages": {
+        "accept": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "等待验收", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-101",
+      "title": "数据大盘调整",
+      "owner": { "id": "user-lukaijie", "name": "卢凯杰", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "accept",
+      "stages": {
+        "accept": { "owner": { "id": "user-lukaijie", "name": "卢凯杰", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "等待验收", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-104",
+      "title": "仓库到供应商的数据迁移",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "accept",
+      "stages": {
+        "accept": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "等待验收", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-112",
+      "title": "1688服务商接口代采",
+      "owner": { "id": "user-wangshuda", "name": "王书达", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "discuss",
+      "stages": {
+        "discuss": { "owner": { "id": "user-wangshuda", "name": "王书达", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "讨论中", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-108",
+      "title": "私域商城平台迁移逻辑验收",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "accept",
+      "stages": {
+        "accept": { "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "等待验收", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-113",
+      "title": "仓库账本数据迁移",
+      "owner": { "id": "user-lukaijie", "name": "卢凯杰", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "discuss",
+      "stages": {
+        "discuss": { "owner": { "id": "user-ledger-113", "name": "卢凯杰 叶鑫伟 王书达", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "讨论中", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-114",
+      "title": "品牌管理",
+      "owner": { "id": "user-lukaijie", "name": "卢凯杰", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "develop",
+      "stages": {
+        "develop": { "owner": { "id": "user-lukaijie", "name": "卢凯杰", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "进入开发", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-115",
+      "title": "供应商系统商品表单调整",
+      "owner": { "id": "user-wangshuda", "name": "王书达", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "develop",
+      "stages": {
+        "develop": { "owner": { "id": "user-wangshuda", "name": "王书达", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "进入开发", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-116",
+      "title": "供应商系统功能说明",
+      "owner": { "id": "user-wangshuda", "name": "王书达", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "develop",
+      "stages": {
+        "develop": { "owner": { "id": "user-wangshuda", "name": "王书达", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "进入开发", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-117",
+      "title": "供应商仓库小程序",
+      "owner": { "id": "user-wangshuda", "name": "王书达", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "accept",
+      "stages": {
+        "accept": { "owner": { "id": "user-miniapp-117", "name": "王书达 卢凯杰", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "等待验收", "updatedAt": "2026-09-09T10:15:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:15:00+08:00" }
+      ]
+    },
+    {
+      "id": "GOAL-118",
+      "title": "新中台的页面补充",
+      "owner": { "id": "user-yexinwei", "name": "叶鑫伟", "role": "工程" },
+      "status": "on_track",
+      "progress": 0,
+      "stage": "develop",
+      "stages": {
+        "develop": { "owner": { "id": "user-midplat-118", "name": "叶鑫伟 卢凯杰", "role": "工程" } }
+      },
+      "target": { "type": "boolean", "label": "今日完成", "value": true },
+      "current": { "value": false },
+      "timeline": { "startAt": "2026-09-09", "dueAt": "2026-09-09" },
+      "update": { "text": "进入开发", "updatedAt": "2026-09-09T10:16:00+08:00" },
+      "activities": [
+        { "type": "update", "text": "列入今日目标", "at": "2026-09-09T10:16:00+08:00" }
+      ]
+    }
+  ]
+}

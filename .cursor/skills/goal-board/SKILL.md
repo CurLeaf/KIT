@@ -1,7 +1,7 @@
 ---
 name: goal-board
 description: >-
-  维护 goal-board 静态目标看板：每日一份 JSON、今日只读当天文件、鼓轮准星带、engine 纯函数。
+  维护 goal-board 静态目标看板：每日一份 JSON、今日只读当天文件、三列现代看板、engine 纯函数。
   Use when working on goal-board, 目标看板, goals.json, 每日 JSON, 或 data/YYYY-MM-DD.json.
 ---
 
@@ -31,7 +31,7 @@ description: >-
 `status`：`at_risk` | `on_track` | `completed`。  
 `target.type`：`duration` | `percentage` | `count` | `milestone` | `boolean`。
 
-排序只调 `sortGoals`。不要按 owner 分组或排序。
+排序只调 `sortGoals`。列分桶只调 `goalsByStage`。不要按 owner 分组或排序。`completed` 不进三列。
 
 ## 代码边界
 
@@ -41,16 +41,16 @@ description: >-
 | `app.js` / `index.html` / `styles.css` | Select-String 锚点；改脚本后给 `index.html` 的 `?v=` 加一 |
 | 只改当日 JSON | 确认路径是今日 `YYYY-MM-DD`；不改 Engine |
 
-Viewer 只拉今日 JSON，并调用：`todayDataPath` `sortGoals` `summarize` `formatTarget` `formatCurrent` `shouldReplace` `drumCardHeight` `drumPad` `snapTop` `ratchetTop` `sightRowIndex` `resumeAutoTop`（循环接龙时）。不要恢复 `data-phase` 切屏、`location.reload()`、FOCUS 侧栏。
+Viewer 只拉今日 JSON，并调用：`todayDataPath` `sortGoals` `goalsByStage` `summarize` `shouldReplace`。不要恢复鼓轮准星、`data-phase` 切屏、`location.reload()`、FOCUS 侧栏。
 
-禁止 `linear-gradient`、字重 700/800、20px+ 圆角。`prefers-reduced-motion: reduce` 时不自动滚。
+禁止 `linear-gradient`、字重 700/800、20px+ 圆角。不要恢复软木纹、胶带、图钉或鼓轮准星。
 
 ## 本地看
 
 在 `goal-board/`：
 
 ```
-python -m http.server 8765 --bind 127.0.0.1
+python serve.py
 ```
 
 http://127.0.0.1:8765/

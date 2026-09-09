@@ -13,7 +13,7 @@ description: >-
 
 对用户说简体中文。计划正文里的路径、命令、代码保持原样。
 
-不要 worktree、不要强制子代理流水线、不要自动 `git commit`。执行走 `/execute`（`.cursor/skills/execute/SKILL.md`）。本仓没有 git-commit skill：提交等用户明确要求。
+不要 worktree、不要强制子代理流水线、不要自动 `git commit`。执行走 `/execute`（`.cursor/skills/execute/SKILL.md`）；提交等用户走 `/git-commit`。
 
 用户说「直接做」则跳过本技能，走 `/execute`。未完成设计、用户也没给等价设计时：先做下面「分析」，不要凭空写计划。
 
@@ -39,9 +39,9 @@ KIT 是工具箱，按目录独立，不要为了统一栈去引入 bun / Next /
 
 - 用户说「直接做」「按这个改」「不用分析」
 - 一眼能改的单文件修复、文案、配置开关
-- 纯问答、查代码、本机排障
+- 纯问答、查代码、本机排障、`/git-commit`
 - `require-ana/` 会议三件套（`出会前清单` / `出确认表` / `出会后结论`）：走 require-ana 规则，不代替分析
-- 用户要求提交：等用户点名再 commit，本层不提交
+- 用户要求提交：走 `/git-commit`，本层不提交
 
 ## 回合
 
