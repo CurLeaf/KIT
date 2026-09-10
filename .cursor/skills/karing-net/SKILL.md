@@ -27,8 +27,8 @@ description: >-
 | 命令 | 谁触发 | 做什么 |
 |---|---|---|
 | `status` | 人手；默认可跑 | 进程 + `127.0.0.1:3057` / `3067`。`-Api` 只读组名 |
-| `watch` | 计划任务每分钟 | 快照；Cursor 换组则按 id 关连接；踢信息节点；手动满 30 分钟回 urltest |
-| `sync` | 用户当句写 `sync` | 画像漂移才写盘，不重启 |
+| `watch` | 计划任务每分钟 | 快照；Cursor 换组记下旧节点，满 5 分钟才按 id 关仍挂在旧链上的连接；踢信息节点；手动满 30 分钟回 urltest |
+| `sync` | 用户当句写 `sync` | 画像漂移才写盘，不重启。画像含 `auto_select` 容差 150 / 健康检查 300s，以及 `Cursor自动` 组只留美、日 regex |
 | `restart` | 用户当句写 `restart` | 停 `karing` / `karingService`，拉计划任务 `Karing`，等端口 |
 
 登录任务 `Karing` 只负责拉起 `karing.exe`。`watch` 看到 3057 没齐就 `skip=ports`，不会在核心没起来时改连接。

@@ -9,6 +9,7 @@ $script:ApiTimeoutSec = 2
 $script:LockTtlWatchSec = 60
 $script:LockTtlWriteSec = 120
 $script:HoldMinutes = 30
+$script:CloseHoldMinutes = 5
 $script:UrltestTag = "urltest_out"
 $script:CursorGroupPattern = "Cursor"
 $script:CursorHostPattern = "cursor\.sh|cursor\.com|cursorapi\.com"
@@ -135,6 +136,23 @@ function Get-KaringNetClashProxies {
     return Invoke-RestMethod -Uri "http://127.0.0.1:3057/proxies" -Headers $headers -TimeoutSec $script:ApiTimeoutSec
 }
 
+function Get-KaringNetClashProxyPutBytes {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    $body = @{ name = $Name } | ConvertTo-Json -Compress
+    return [System.Text.UTF8Encoding]::new($false).GetBytes($body)
+}
+
+function Set-KaringNetClashGroupNow {
+    param(
+        [Parameter(Mandatory = $true)][string]$Group,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+    $headers = Get-KaringNetClashHeaders
+    $bytes = Get-KaringNetClashProxyPutBytes -Name $Name
+    $uri = "http://127.0.0.1:{0}/proxies/{1}" -f $script:ControlPort, [uri]::EscapeDataString($Group)
+    Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body $bytes -ContentType "application/json; charset=utf-8" -TimeoutSec $script:ApiTimeoutSec | Out-Null
+}
+
 function Get-KaringNetGroupNow {
     param($Proxies)
     $map = @{}
@@ -239,16 +257,55 @@ function Get-KaringNetNote {
 
 function Test-KaringNetCursorGroupChange {
     param($Prev, $Now)
-    if ($null -eq $Now) { return $false }
+    $from = @(Get-KaringNetCursorSwitchedFrom $Prev $Now)
+    return ($from.Count -gt 0)
+}
+
+function Get-KaringNetCursorSwitchedFrom {
+    param($Prev, $Now)
+    $out = New-Object System.Collections.Generic.List[string]
+    if ($null -eq $Now) { return @() }
     $prevMap = ConvertTo-KaringNetGroupMap $Prev
     foreach ($k in $Now.Keys) {
         if ($k -notmatch $script:CursorGroupPattern) { continue }
         $old = ""
         if ($prevMap.ContainsKey($k)) { $old = [string]$prevMap[$k] }
         $new = [string]$Now[$k]
-        if ($old -and $new -and $old -ne $new) { return $true }
+        if ($old -and $new -and $old -ne $new) { [void]$out.Add($old) }
     }
-    return $false
+    return @($out)
+}
+
+function Get-KaringNetCursorCurrentNode {
+    param($Now)
+    if ($null -eq $Now) { return "" }
+    foreach ($k in $Now.Keys) {
+        if ($k -notmatch $script:CursorGroupPattern) { continue }
+        return [string]$Now[$k]
+    }
+    return ""
+}
+
+function Test-KaringNetCursorCloseHoldExpired {
+    param($State, [datetime]$Now)
+    $at = Get-KaringNetNote $State "cursorClosedAt"
+    if (-not $at) { return $true }
+    try {
+        $dt = [datetime]$at
+    } catch {
+        return $true
+    }
+    return (($Now - $dt).TotalMinutes -ge $script:CloseHoldMinutes)
+}
+
+function Add-KaringNetUniqueName {
+    param([string[]]$List, [string]$Name)
+    $next = New-Object System.Collections.Generic.List[string]
+    foreach ($x in @($List)) {
+        if ([string]$x) { [void]$next.Add([string]$x) }
+    }
+    if ($Name -and -not $next.Contains($Name)) { [void]$next.Add($Name) }
+    return , @($next)
 }
 
 function Select-KaringNetCursorConnections {
@@ -277,9 +334,48 @@ function Select-KaringNetCursorConnections {
     return $out.ToArray()
 }
 
-function Close-KaringNetCursorConnections {
-    param($Connections, [switch]$DryRun)
+function Get-KaringNetConnectionChains {
+    param($Conn)
+    $list = New-Object System.Collections.Generic.List[string]
+    $md = Get-KaringNetNote $Conn "metadata"
+    foreach ($holder in @($Conn, $md)) {
+        $raw = Get-KaringNetNote $holder "chains"
+        if ($null -eq $raw) { continue }
+        foreach ($x in @($raw)) {
+            if ($null -eq $x) { continue }
+            $s = [string]$x
+            if ($s) { [void]$list.Add($s) }
+        }
+    }
+    return @($list)
+}
+
+function Select-KaringNetStaleCursorConnections {
+    param($Connections, [string[]]$OnNodes, [string]$CurrentNode)
     $selected = @(Select-KaringNetCursorConnections $Connections)
+    if ($null -eq $OnNodes) { return $selected }
+    $stale = @($OnNodes | Where-Object { $_ })
+    $out = New-Object System.Collections.Generic.List[object]
+    foreach ($c in $selected) {
+        $chains = @(Get-KaringNetConnectionChains $c)
+        $onStale = $false
+        foreach ($n in $stale) {
+            if ($chains -contains $n) { $onStale = $true; break }
+        }
+        $onCurrent = $false
+        if ($CurrentNode -and ($chains -contains $CurrentNode)) { $onCurrent = $true }
+        if ($onStale -and -not $onCurrent) { [void]$out.Add($c) }
+    }
+    return $out.ToArray()
+}
+
+function Close-KaringNetCursorConnections {
+    param($Connections, [string[]]$OnNodes, [string]$CurrentNode, [switch]$DryRun)
+    if ($null -eq $OnNodes) {
+        $selected = @(Select-KaringNetCursorConnections $Connections)
+    } else {
+        $selected = @(Select-KaringNetStaleCursorConnections -Connections $Connections -OnNodes $OnNodes -CurrentNode $CurrentNode)
+    }
     $ids = @($selected | ForEach-Object { [string]$_.id })
     if (-not $DryRun) {
         $headers = Get-KaringNetClashHeaders
@@ -395,27 +491,46 @@ function Invoke-KaringNetWatch {
     $now = Get-KaringNetGroupNow $Proxies
     $state = Get-KaringNetState
     $prev = Get-KaringNetNote $state "groupNow"
-    if (Test-KaringNetCursorGroupChange $prev $now) {
+    $pending = @()
+    $pendVal = Get-KaringNetNote $state "cursorCloseNodes"
+    if ($null -ne $pendVal) { $pending = @($pendVal) }
+    foreach ($from in @(Get-KaringNetCursorSwitchedFrom $prev $now)) {
+        $pending = @(Add-KaringNetUniqueName -List $pending -Name $from)
+    }
+    $holdExpired = Test-KaringNetCursorCloseHoldExpired -State $state -Now (Get-Date)
+    $currentNode = Get-KaringNetCursorCurrentNode $now
+    if ($pending.Count -gt 0 -and $holdExpired) {
         if ($null -eq $Connections) {
             try { $Connections = Get-KaringNetClashConnections } catch { $Connections = $null }
         }
-        $closed = @(Close-KaringNetCursorConnections -Connections $Connections -DryRun:$DryRun)
+        $closed = @(Close-KaringNetCursorConnections -Connections $Connections -OnNodes $pending -CurrentNode $currentNode -DryRun:$DryRun)
         Write-KaringNetLog ("watch close ids={0}" -f ($closed -join ","))
+        if ($closed.Count -gt 0) {
+            $state | Add-Member -NotePropertyName cursorClosedAt -NotePropertyValue (Get-Date).ToString("o") -Force
+        }
+        $pending = @()
+    } elseif ($pending.Count -gt 0) {
+        Write-KaringNetLog "watch skip=close-hold"
     }
     $root = $Proxies
     if ($null -ne (Get-KaringNetNote $Proxies "proxies")) { $root = $Proxies.proxies }
     foreach ($k in @($now.Keys)) {
         $cur = [string]$now[$k]
         if (-not (Test-KaringNetInfoNode $cur)) { continue }
-        $group = $root.$k
+        $group = Get-KaringNetNote $root $k
         $rep = Get-KaringNetReplacementNode -Group $group -Current $cur
         if (-not $rep) { continue }
         $kickedFrom = $cur
         $kickedTo = $rep
         if (-not $DryRun) {
-            $headers = Get-KaringNetClashHeaders
-            $body = @{ name = $rep } | ConvertTo-Json -Compress
-            Invoke-RestMethod -Method Put -Uri ("http://127.0.0.1:3057/proxies/{0}" -f [uri]::EscapeDataString($k)) -Headers $headers -Body $body -ContentType "application/json" -TimeoutSec 2 | Out-Null
+            try {
+                Set-KaringNetClashGroupNow -Group $k -Name $rep
+            } catch {
+                Write-KaringNetLog ("watch kick fail group={0} err={1}" -f $k, $_.Exception.Message)
+                $kickedFrom = $null
+                $kickedTo = $null
+                continue
+            }
         }
         $now[$k] = $rep
         Write-KaringNetLog ("watch kick group={0} to={1}" -f $k, $rep)
@@ -450,6 +565,7 @@ function Invoke-KaringNetWatch {
         }
     }
     $state | Add-Member -NotePropertyName groupNow -NotePropertyValue (ConvertTo-KaringNetGroupObject $now) -Force
+    $state | Add-Member -NotePropertyName cursorCloseNodes -NotePropertyValue @($pending) -Force
     $state | Add-Member -NotePropertyName updatedAt -NotePropertyValue (Get-Date).ToString("o") -Force
     $changed = ($closed.Count -gt 0) -or $kickedTo -or $promoted
     if (-not $DryRun) {
@@ -473,14 +589,78 @@ function Invoke-KaringNetWatch {
     }
 }
 
+function Get-KaringNetCursorUrltestRemark {
+    return ("Cursor" + [regex]::Unescape('\u81ea\u52a8'))
+}
+
+function Get-KaringNetCursorUrltestRegexs {
+    $us = [regex]::Unescape('\u7f8e\u56fd')
+    $jp = [regex]::Unescape('\u65e5\u672c')
+    return @(
+        ($us + '|US|unitedstates|' + $us + 'LA'),
+        ($jp + '|JP|japan|jp\.')
+    )
+}
+
+function Test-KaringNetStringListEqual {
+    param($Left, $Right)
+    $a = @($Left)
+    $b = @($Right)
+    if ($a.Count -ne $b.Count) { return $false }
+    for ($i = 0; $i -lt $a.Count; $i++) {
+        if ([string]$a[$i] -ne [string]$b[$i]) { return $false }
+    }
+    return $true
+}
+
+function Set-KaringNetSubscribeCursorUrltest {
+    param($Subscribe, [string[]]$Regexs)
+    if ($null -eq $Subscribe) { return $false }
+    if ($null -eq $Regexs) { $Regexs = @() }
+    $remark = Get-KaringNetCursorUrltestRemark
+    $changed = $false
+    $items = Get-KaringNetNote $Subscribe "items"
+    foreach ($item in @($items)) {
+        $uts = Get-KaringNetNote $item "urltests"
+        foreach ($ut in @($uts)) {
+            if ([string](Get-KaringNetNote $ut "remark") -ne $remark) { continue }
+            $cur = @(Get-KaringNetNote $ut "regexs")
+            if (Test-KaringNetStringListEqual $cur $Regexs) { continue }
+            $ut | Add-Member -NotePropertyName regexs -NotePropertyValue @($Regexs) -Force
+            $changed = $true
+        }
+    }
+    return $changed
+}
+
+function Update-KaringNetSubscribeCursorUrltestText {
+    param([string]$Raw, [string[]]$Regexs)
+    if (-not $Raw) { return $Raw }
+    if ($null -eq $Regexs) { $Regexs = @() }
+    $remark = Get-KaringNetCursorUrltestRemark
+    $items = New-Object System.Collections.Generic.List[string]
+    foreach ($r in $Regexs) {
+        $esc = [string]$r
+        $esc = $esc.Replace('\', '\\').Replace('"', '\"')
+        [void]$items.Add('"' + $esc + '"')
+    }
+    $joined = [string]::Join(", ", @($items))
+    $newArray = "[" + $joined + "]"
+    $pattern = '("remark"\s*:\s*"' + [regex]::Escape($remark) + '"[\s\S]*?"regexs"\s*:\s*)\[[^\]]*\]'
+    return [regex]::Replace($Raw, $pattern, ('${1}' + $newArray))
+}
+
 function Get-KaringNetDesiredProfile {
     return [pscustomobject]@{
-        AutoSetSystemProxy  = $true
-        ProxyResolveMode    = "proxy"
-        TunEnable           = $true
-        ProxyServer         = "127.0.0.1:3067"
-        CursorProxySupport  = "on"
-        BypassMust          = @(
+        AutoSetSystemProxy          = $true
+        ProxyResolveMode            = "proxy"
+        TunEnable                   = $true
+        ProxyServer                 = "127.0.0.1:3067"
+        CursorProxySupport          = "on"
+        AutoSelectInterval          = 300
+        AutoSelectTolerance         = 150
+        SelectedHealthCheckInterval = 300
+        BypassMust                  = @(
             "<-loopback>", "<local>", "localhost", "*.local",
             "127.*", "10.*", "172.16.*", "172.17.*", "172.18.*", "172.19.*",
             "172.2*", "172.30.*", "172.31.*", "192.168.*", "10.126.*",
@@ -489,17 +669,17 @@ function Get-KaringNetDesiredProfile {
             "docker.cnb.cool", "*.docker.cnb.cool",
             "*.qxai666.com", "qxai666.com"
         )
-        BypassMustNot       = @(
+        BypassMustNot               = @(
             "*.cursor.sh", "cursor.sh",
             "*.cursor.com", "cursor.com",
             "*.cursorapi.com", "cursorapi.com",
             "*.cursor-cdn.com", "cursor-cdn.com"
         )
-        RouteExclude        = @(
+        RouteExclude                = @(
             "10.20.0.0/30", "10.126.126.0/24", "10.126.0.0/16",
             "192.168.0.0/16", "172.16.0.0/12", "10.255.255.0/24"
         )
-        CursorNoProxy       = @(
+        CursorNoProxy               = @(
             "<loopback>", "localhost", "127.0.0.1", "*.local",
             "10.*", "172.16.*", "172.17.*", "172.18.*", "172.19.*",
             "172.2*", "172.30.*", "172.31.*", "192.168.*"
@@ -513,7 +693,8 @@ function Get-KaringNetProfileDrift {
         [int]$ProxyEnable,
         [string]$ProxyServer,
         [string]$ProxyOverride,
-        [string]$CursorProxySupport
+        [string]$CursorProxySupport,
+        $Subscribe
     )
     $d = Get-KaringNetDesiredProfile
     $reasons = New-Object System.Collections.Generic.List[string]
@@ -535,6 +716,31 @@ function Get-KaringNetProfileDrift {
         if ($exc -notcontains $need) { [void]$reasons.Add("tun.route_exclude"); break }
     }
     if ($CursorProxySupport -ne $d.CursorProxySupport) { [void]$reasons.Add("cursor.proxySupport") }
+    $as = Get-KaringNetNote $Setting "auto_select"
+    $asInterval = Get-KaringNetNote $as "interval"
+    $asTolerance = Get-KaringNetNote $as "tolerance"
+    $asHealth = Get-KaringNetNote $as "selected_health_check_interval"
+    if ([int](0 + $asInterval) -ne [int]$d.AutoSelectInterval) { [void]$reasons.Add("auto_select.interval") }
+    if ([int](0 + $asTolerance) -ne [int]$d.AutoSelectTolerance) { [void]$reasons.Add("auto_select.tolerance") }
+    if ([int](0 + $asHealth) -ne [int]$d.SelectedHealthCheckInterval) { [void]$reasons.Add("auto_select.health_check") }
+    if ($null -ne $Subscribe) {
+        $remark = Get-KaringNetCursorUrltestRemark
+        $wanted = @(Get-KaringNetCursorUrltestRegexs)
+        $mismatch = $false
+        $items = Get-KaringNetNote $Subscribe "items"
+        foreach ($item in @($items)) {
+            $uts = Get-KaringNetNote $item "urltests"
+            foreach ($ut in @($uts)) {
+                if ([string](Get-KaringNetNote $ut "remark") -ne $remark) { continue }
+                if (-not (Test-KaringNetStringListEqual (Get-KaringNetNote $ut "regexs") $wanted)) {
+                    $mismatch = $true
+                    break
+                }
+            }
+            if ($mismatch) { break }
+        }
+        if ($mismatch) { [void]$reasons.Add("cursor.urltest.regex") }
+    }
     return @($reasons)
 }
 
@@ -561,7 +767,9 @@ function Sync-KaringNetProfile {
         [string]$CursorProxySupport,
         [string]$SettingPath,
         [string]$CursorSettingPath,
-        [string]$DockerSettingPath
+        [string]$DockerSettingPath,
+        [string]$SubscribePath,
+        $Subscribe
     )
     if (-not (Lock-KaringNet -Command "sync" -TtlSec $script:LockTtlWriteSec)) {
         return [pscustomobject]@{ Ok = $false; Reason = "lock"; Wrote = $false; Drift = @() }
@@ -571,8 +779,12 @@ function Sync-KaringNetProfile {
         if (-not $SettingPath) { $SettingPath = Join-Path $script:RuntimeDir "karing_setting.json" }
         if (-not $CursorSettingPath) { $CursorSettingPath = Join-Path $env:APPDATA "Cursor\User\settings.json" }
         if (-not $DockerSettingPath) { $DockerSettingPath = Join-Path $env:APPDATA "Docker\settings-store.json" }
+        if (-not $SubscribePath) { $SubscribePath = Join-Path $script:RuntimeDir "karing_subscribe.json" }
         if ($null -eq $Setting -and (Test-Path -LiteralPath $SettingPath)) {
             $Setting = Get-Content -LiteralPath $SettingPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        }
+        if ($null -eq $Subscribe -and (Test-Path -LiteralPath $SubscribePath)) {
+            $Subscribe = Get-Content -LiteralPath $SubscribePath -Raw -Encoding UTF8 | ConvertFrom-Json
         }
         if ($PSBoundParameters.ContainsKey("ProxyEnable") -eq $false) {
             $reg = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
@@ -584,7 +796,7 @@ function Sync-KaringNetProfile {
             $cur = Get-Content -LiteralPath $CursorSettingPath -Raw -Encoding UTF8 | ConvertFrom-Json
             $CursorProxySupport = [string]$cur."http.proxySupport"
         }
-        $drift = @(Get-KaringNetProfileDrift -Setting $Setting -ProxyEnable $ProxyEnable -ProxyServer $ProxyServer -ProxyOverride $ProxyOverride -CursorProxySupport $CursorProxySupport)
+        $drift = @(Get-KaringNetProfileDrift -Setting $Setting -ProxyEnable $ProxyEnable -ProxyServer $ProxyServer -ProxyOverride $ProxyOverride -CursorProxySupport $CursorProxySupport -Subscribe $Subscribe)
         if ($drift.Count -eq 0) {
             return [pscustomobject]@{ Ok = $true; Reason = "clean"; Wrote = $false; Drift = @() }
         }
@@ -597,8 +809,28 @@ function Sync-KaringNetProfile {
         $Setting.proxy.system_proxy_bypass_domain = Update-KaringNetStringList -List $Setting.proxy.system_proxy_bypass_domain -Remove $d.BypassMustNot -Ensure $d.BypassMust
         $Setting.tun.allow_bypass_httpproxy_domains = Update-KaringNetStringList -List $Setting.tun.allow_bypass_httpproxy_domains -Remove $d.BypassMustNot -Ensure $d.BypassMust
         $Setting.tun.route_exclude_address = Update-KaringNetStringList -List $Setting.tun.route_exclude_address -Remove @() -Ensure $d.RouteExclude
+        $as = Get-KaringNetNote $Setting "auto_select"
+        if ($null -eq $as) {
+            $as = [pscustomobject]@{}
+            $Setting | Add-Member -NotePropertyName auto_select -NotePropertyValue $as -Force
+        }
+        $as | Add-Member -NotePropertyName interval -NotePropertyValue $d.AutoSelectInterval -Force
+        $as | Add-Member -NotePropertyName tolerance -NotePropertyValue $d.AutoSelectTolerance -Force
+        $as | Add-Member -NotePropertyName selected_health_check_interval -NotePropertyValue $d.SelectedHealthCheckInterval -Force
         $utf8 = New-Object System.Text.UTF8Encoding $false
         [System.IO.File]::WriteAllText($SettingPath, (($Setting | ConvertTo-Json -Depth 30) + "`r`n"), $utf8)
+        if ($null -ne $Subscribe) {
+            $subChanged = Set-KaringNetSubscribeCursorUrltest -Subscribe $Subscribe -Regexs @(Get-KaringNetCursorUrltestRegexs)
+            if ($subChanged -and (Test-Path -LiteralPath $SubscribePath)) {
+                $raw = [System.IO.File]::ReadAllText($SubscribePath)
+                $next = Update-KaringNetSubscribeCursorUrltestText -Raw $raw -Regexs @(Get-KaringNetCursorUrltestRegexs)
+                if ($next -ne $raw) {
+                    [System.IO.File]::WriteAllText($SubscribePath, $next, $utf8)
+                } else {
+                    Write-KaringNetLog "sync skip=subscribe-text"
+                }
+            }
+        }
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable -Value 1
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyServer -Value $d.ProxyServer
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyOverride -Value ($d.BypassMust -join ";")
