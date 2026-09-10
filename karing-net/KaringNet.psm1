@@ -400,7 +400,7 @@ function Test-KaringNetInfoNode {
 }
 
 function Get-KaringNetReplacementNode {
-    param($Group, [string]$Current)
+    param($Group, [string]$Current, [switch]$SkipGpt)
     $all = @()
     $allVal = Get-KaringNetNote $Group "all"
     if ($null -ne $allVal) { $all = @($allVal) }
@@ -408,6 +408,7 @@ function Get-KaringNetReplacementNode {
         $s = [string]$n
         if ($s -eq $Current) { continue }
         if (Test-KaringNetInfoNode $s) { continue }
+        if ($SkipGpt -and (Test-KaringNetGptNode $s)) { continue }
         return $s
     }
     $fallback = Get-KaringNetFallbackNode
@@ -516,9 +517,10 @@ function Invoke-KaringNetWatch {
     if ($null -ne (Get-KaringNetNote $Proxies "proxies")) { $root = $Proxies.proxies }
     foreach ($k in @($now.Keys)) {
         $cur = [string]$now[$k]
-        if (-not (Test-KaringNetInfoNode $cur)) { continue }
+        $browseEmpty = Test-KaringNetEmptyBrowseGroup -Group $k -Current $cur
+        if (-not (Test-KaringNetInfoNode $cur) -and -not $browseEmpty) { continue }
         $group = Get-KaringNetNote $root $k
-        $rep = Get-KaringNetReplacementNode -Group $group -Current $cur
+        $rep = Get-KaringNetReplacementNode -Group $group -Current $cur -SkipGpt:$browseEmpty
         if (-not $rep) { continue }
         $kickedFrom = $cur
         $kickedTo = $rep
@@ -602,6 +604,46 @@ function Get-KaringNetCursorUrltestRegexs {
     )
 }
 
+function Get-KaringNetBrowseUrltestRemark {
+    return [regex]::Unescape('\u81ea\u52a8\u4f18\u9009')
+}
+
+function Get-KaringNetBrowseUrltestRegexs {
+    $hk = [regex]::Unescape('\u9999\u6E2F')
+    $jp = [regex]::Unescape('\u65E5\u672C')
+    $sg = [regex]::Unescape('\u65B0\u52A0\u5761')
+    $tw = [regex]::Unescape('\u53F0\u6E7E')
+    $opt = [regex]::Unescape('\u4F18\u5316')
+    $bei = [regex]::Unescape('\u5907')
+    $flower = [regex]::Unescape('\u2740')
+    return @(
+        ($hk + 'HK|' + $hk + 'HKT|' + $hk + ' ' + $flower + '|' + $hk + $flower + '|' + $hk + $bei),
+        ($jp + '-' + $opt + '|' + $jp + 'JP|' + $jp + ' ' + $flower + '|' + $jp + $bei),
+        ($sg + 'SG|' + $sg + '-' + $opt + '3|' + $sg + ' ' + $flower + '|' + $sg + $bei),
+        ($tw + '-' + $opt + '3|^' + $tw + '-' + $opt + '$')
+    )
+}
+
+function Get-KaringNetBrowseDiversionNames {
+    $yt = [regex]::Unescape('\uD83D\uDCFA') + ' YouTube'
+    $gg = [regex]::Unescape('\uD83C\uDF0F') + ' Google'
+    return @($yt, $gg)
+}
+
+function Test-KaringNetEmptyBrowseGroup {
+    param([string]$Group, [string]$Current)
+    if ($Current) { return $false }
+    if (-not $Group) { return $false }
+    $remark = Get-KaringNetBrowseUrltestRemark
+    return (($Group -eq $remark) -or ($Group -like ('*-' + $remark)))
+}
+
+function Test-KaringNetGptNode {
+    param([string]$Name)
+    if (-not $Name) { return $false }
+    return [bool]($Name -match 'GPT')
+}
+
 function Test-KaringNetStringListEqual {
     param($Left, $Right)
     $a = @($Left)
@@ -613,17 +655,17 @@ function Test-KaringNetStringListEqual {
     return $true
 }
 
-function Set-KaringNetSubscribeCursorUrltest {
-    param($Subscribe, [string[]]$Regexs)
+function Set-KaringNetSubscribeUrltestByRemark {
+    param($Subscribe, [string]$Remark, [string[]]$Regexs)
     if ($null -eq $Subscribe) { return $false }
+    if (-not $Remark) { return $false }
     if ($null -eq $Regexs) { $Regexs = @() }
-    $remark = Get-KaringNetCursorUrltestRemark
     $changed = $false
     $items = Get-KaringNetNote $Subscribe "items"
     foreach ($item in @($items)) {
         $uts = Get-KaringNetNote $item "urltests"
         foreach ($ut in @($uts)) {
-            if ([string](Get-KaringNetNote $ut "remark") -ne $remark) { continue }
+            if ([string](Get-KaringNetNote $ut "remark") -ne $Remark) { continue }
             $cur = @(Get-KaringNetNote $ut "regexs")
             if (Test-KaringNetStringListEqual $cur $Regexs) { continue }
             $ut | Add-Member -NotePropertyName regexs -NotePropertyValue @($Regexs) -Force
@@ -633,11 +675,21 @@ function Set-KaringNetSubscribeCursorUrltest {
     return $changed
 }
 
-function Update-KaringNetSubscribeCursorUrltestText {
-    param([string]$Raw, [string[]]$Regexs)
+function Set-KaringNetSubscribeCursorUrltest {
+    param($Subscribe, [string[]]$Regexs)
+    return (Set-KaringNetSubscribeUrltestByRemark -Subscribe $Subscribe -Remark (Get-KaringNetCursorUrltestRemark) -Regexs $Regexs)
+}
+
+function Set-KaringNetSubscribeBrowseUrltest {
+    param($Subscribe, [string[]]$Regexs)
+    return (Set-KaringNetSubscribeUrltestByRemark -Subscribe $Subscribe -Remark (Get-KaringNetBrowseUrltestRemark) -Regexs $Regexs)
+}
+
+function Update-KaringNetSubscribeUrltestTextByRemark {
+    param([string]$Raw, [string]$Remark, [string[]]$Regexs)
     if (-not $Raw) { return $Raw }
+    if (-not $Remark) { return $Raw }
     if ($null -eq $Regexs) { $Regexs = @() }
-    $remark = Get-KaringNetCursorUrltestRemark
     $items = New-Object System.Collections.Generic.List[string]
     foreach ($r in $Regexs) {
         $esc = [string]$r
@@ -646,8 +698,57 @@ function Update-KaringNetSubscribeCursorUrltestText {
     }
     $joined = [string]::Join(", ", @($items))
     $newArray = "[" + $joined + "]"
-    $pattern = '("remark"\s*:\s*"' + [regex]::Escape($remark) + '"[\s\S]*?"regexs"\s*:\s*)\[[^\]]*\]'
+    $pattern = '("remark"\s*:\s*"' + [regex]::Escape($Remark) + '"[\s\S]*?"regexs"\s*:\s*)\[[^\]]*\]'
     return [regex]::Replace($Raw, $pattern, ('${1}' + $newArray))
+}
+
+function Update-KaringNetSubscribeCursorUrltestText {
+    param([string]$Raw, [string[]]$Regexs)
+    return (Update-KaringNetSubscribeUrltestTextByRemark -Raw $Raw -Remark (Get-KaringNetCursorUrltestRemark) -Regexs $Regexs)
+}
+
+function Update-KaringNetSubscribeBrowseUrltestText {
+    param([string]$Raw, [string[]]$Regexs)
+    return (Update-KaringNetSubscribeUrltestTextByRemark -Raw $Raw -Remark (Get-KaringNetBrowseUrltestRemark) -Regexs $Regexs)
+}
+
+function Test-KaringNetBrowseDiversion {
+    param($Use)
+    if ($null -eq $Use) { return $false }
+    $remark = Get-KaringNetBrowseUrltestRemark
+    $items = @(Get-KaringNetNote $Use "diversion_group")
+    foreach ($want in @(Get-KaringNetBrowseDiversionNames)) {
+        $hit = $false
+        foreach ($d in $items) {
+            if ([string](Get-KaringNetNote $d "diversion_name") -ne $want) { continue }
+            $hit = $true
+            if ([string](Get-KaringNetNote $d "server_groupid") -ne "urltest") { return $false }
+            if ([string](Get-KaringNetNote $d "server_name") -ne $remark) { return $false }
+        }
+        if (-not $hit) { return $false }
+    }
+    return $true
+}
+
+function Set-KaringNetSubscribeUseBrowseDiversion {
+    param($Use)
+    if ($null -eq $Use) { return $false }
+    $remark = Get-KaringNetBrowseUrltestRemark
+    $names = @(Get-KaringNetBrowseDiversionNames)
+    $changed = $false
+    foreach ($d in @(Get-KaringNetNote $Use "diversion_group")) {
+        $n = [string](Get-KaringNetNote $d "diversion_name")
+        if ($names -notcontains $n) { continue }
+        if ([string](Get-KaringNetNote $d "server_groupid") -ne "urltest") {
+            $d | Add-Member -NotePropertyName server_groupid -NotePropertyValue "urltest" -Force
+            $changed = $true
+        }
+        if ([string](Get-KaringNetNote $d "server_name") -ne $remark) {
+            $d | Add-Member -NotePropertyName server_name -NotePropertyValue $remark -Force
+            $changed = $true
+        }
+    }
+    return $changed
 }
 
 function Get-KaringNetDesiredProfile {
@@ -694,7 +795,8 @@ function Get-KaringNetProfileDrift {
         [string]$ProxyServer,
         [string]$ProxyOverride,
         [string]$CursorProxySupport,
-        $Subscribe
+        $Subscribe,
+        $Use
     )
     $d = Get-KaringNetDesiredProfile
     $reasons = New-Object System.Collections.Generic.List[string]
@@ -740,6 +842,26 @@ function Get-KaringNetProfileDrift {
             if ($mismatch) { break }
         }
         if ($mismatch) { [void]$reasons.Add("cursor.urltest.regex") }
+        $browseRemark = Get-KaringNetBrowseUrltestRemark
+        $browseWanted = @(Get-KaringNetBrowseUrltestRegexs)
+        $browseMismatch = $false
+        $browseFound = $false
+        foreach ($item in @($items)) {
+            $uts = Get-KaringNetNote $item "urltests"
+            foreach ($ut in @($uts)) {
+                if ([string](Get-KaringNetNote $ut "remark") -ne $browseRemark) { continue }
+                $browseFound = $true
+                if (-not (Test-KaringNetStringListEqual (Get-KaringNetNote $ut "regexs") $browseWanted)) {
+                    $browseMismatch = $true
+                    break
+                }
+            }
+            if ($browseMismatch) { break }
+        }
+        if ($browseMismatch -or -not $browseFound) { [void]$reasons.Add("browse.urltest.regex") }
+    }
+    if ($null -ne $Use -and -not (Test-KaringNetBrowseDiversion $Use)) {
+        [void]$reasons.Add("browse.diversion")
     }
     return @($reasons)
 }
@@ -769,7 +891,9 @@ function Sync-KaringNetProfile {
         [string]$CursorSettingPath,
         [string]$DockerSettingPath,
         [string]$SubscribePath,
-        $Subscribe
+        $Subscribe,
+        [string]$UsePath,
+        $Use
     )
     if (-not (Lock-KaringNet -Command "sync" -TtlSec $script:LockTtlWriteSec)) {
         return [pscustomobject]@{ Ok = $false; Reason = "lock"; Wrote = $false; Drift = @() }
@@ -780,11 +904,15 @@ function Sync-KaringNetProfile {
         if (-not $CursorSettingPath) { $CursorSettingPath = Join-Path $env:APPDATA "Cursor\User\settings.json" }
         if (-not $DockerSettingPath) { $DockerSettingPath = Join-Path $env:APPDATA "Docker\settings-store.json" }
         if (-not $SubscribePath) { $SubscribePath = Join-Path $script:RuntimeDir "karing_subscribe.json" }
+        if (-not $UsePath) { $UsePath = Get-KaringNetUsePath }
         if ($null -eq $Setting -and (Test-Path -LiteralPath $SettingPath)) {
             $Setting = Get-Content -LiteralPath $SettingPath -Raw -Encoding UTF8 | ConvertFrom-Json
         }
         if ($null -eq $Subscribe -and (Test-Path -LiteralPath $SubscribePath)) {
             $Subscribe = Get-Content -LiteralPath $SubscribePath -Raw -Encoding UTF8 | ConvertFrom-Json
+        }
+        if ($null -eq $Use -and (Test-Path -LiteralPath $UsePath)) {
+            $Use = Get-Content -LiteralPath $UsePath -Raw -Encoding UTF8 | ConvertFrom-Json
         }
         if ($PSBoundParameters.ContainsKey("ProxyEnable") -eq $false) {
             $reg = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
@@ -796,7 +924,7 @@ function Sync-KaringNetProfile {
             $cur = Get-Content -LiteralPath $CursorSettingPath -Raw -Encoding UTF8 | ConvertFrom-Json
             $CursorProxySupport = [string]$cur."http.proxySupport"
         }
-        $drift = @(Get-KaringNetProfileDrift -Setting $Setting -ProxyEnable $ProxyEnable -ProxyServer $ProxyServer -ProxyOverride $ProxyOverride -CursorProxySupport $CursorProxySupport -Subscribe $Subscribe)
+        $drift = @(Get-KaringNetProfileDrift -Setting $Setting -ProxyEnable $ProxyEnable -ProxyServer $ProxyServer -ProxyOverride $ProxyOverride -CursorProxySupport $CursorProxySupport -Subscribe $Subscribe -Use $Use)
         if ($drift.Count -eq 0) {
             return [pscustomobject]@{ Ok = $true; Reason = "clean"; Wrote = $false; Drift = @() }
         }
@@ -820,15 +948,28 @@ function Sync-KaringNetProfile {
         $utf8 = New-Object System.Text.UTF8Encoding $false
         [System.IO.File]::WriteAllText($SettingPath, (($Setting | ConvertTo-Json -Depth 30) + "`r`n"), $utf8)
         if ($null -ne $Subscribe) {
-            $subChanged = Set-KaringNetSubscribeCursorUrltest -Subscribe $Subscribe -Regexs @(Get-KaringNetCursorUrltestRegexs)
-            if ($subChanged -and (Test-Path -LiteralPath $SubscribePath)) {
+            $cursorSub = Set-KaringNetSubscribeCursorUrltest -Subscribe $Subscribe -Regexs @(Get-KaringNetCursorUrltestRegexs)
+            $browseSub = Set-KaringNetSubscribeBrowseUrltest -Subscribe $Subscribe -Regexs @(Get-KaringNetBrowseUrltestRegexs)
+            if (($cursorSub -or $browseSub) -and (Test-Path -LiteralPath $SubscribePath)) {
                 $raw = [System.IO.File]::ReadAllText($SubscribePath)
-                $next = Update-KaringNetSubscribeCursorUrltestText -Raw $raw -Regexs @(Get-KaringNetCursorUrltestRegexs)
+                $next = $raw
+                if ($cursorSub) {
+                    $next = Update-KaringNetSubscribeCursorUrltestText -Raw $next -Regexs @(Get-KaringNetCursorUrltestRegexs)
+                }
+                if ($browseSub) {
+                    $next = Update-KaringNetSubscribeBrowseUrltestText -Raw $next -Regexs @(Get-KaringNetBrowseUrltestRegexs)
+                }
                 if ($next -ne $raw) {
                     [System.IO.File]::WriteAllText($SubscribePath, $next, $utf8)
                 } else {
                     Write-KaringNetLog "sync skip=subscribe-text"
                 }
+            }
+        }
+        if ($null -ne $Use) {
+            $useChanged = Set-KaringNetSubscribeUseBrowseDiversion -Use $Use
+            if ($useChanged) {
+                [System.IO.File]::WriteAllText($UsePath, (($Use | ConvertTo-Json -Depth 40) + "`r`n"), $utf8)
             }
         }
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable -Value 1
