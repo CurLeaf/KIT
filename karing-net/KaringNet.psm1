@@ -520,6 +520,7 @@ function Invoke-KaringNetWatch {
         $browseEmpty = Test-KaringNetEmptyBrowseGroup -Group $k -Current $cur
         if (-not (Test-KaringNetInfoNode $cur) -and -not $browseEmpty) { continue }
         $group = Get-KaringNetNote $root $k
+        if (Test-KaringNetIsUrltest $group) { continue }
         $rep = Get-KaringNetReplacementNode -Group $group -Current $cur -SkipGpt:$browseEmpty
         if (-not $rep) { continue }
         $kickedFrom = $cur
@@ -604,6 +605,10 @@ function Get-KaringNetCursorUrltestRegexs {
     )
 }
 
+function Get-KaringNetAiUrltestRemark {
+    return ("AI" + [regex]::Unescape('\u4E25\u683C-\u7F8E\u65E5\u65B0'))
+}
+
 function Get-KaringNetBrowseUrltestRemark {
     return [regex]::Unescape('\u81ea\u52a8\u4f18\u9009')
 }
@@ -624,10 +629,51 @@ function Get-KaringNetBrowseUrltestRegexs {
     )
 }
 
+function Get-KaringNetDesiredDiversions {
+    $ai = Get-KaringNetAiUrltestRemark
+    $cu = Get-KaringNetCursorUrltestRemark
+    $br = Get-KaringNetBrowseUrltestRemark
+    $rows = New-Object System.Collections.Generic.List[object]
+    $named = @(
+        @{ N = ([regex]::Unescape('\uD83D\uDCAC') + " ChatGPT / OpenAI"); G = "urltest"; S = $ai },
+        @{ N = ([regex]::Unescape('\u264A\uFE0F') + " Google AI Studio"); G = "urltest"; S = $ai },
+        @{ N = ([regex]::Unescape('\uD83E\uDDE0') + " Claude"); G = "urltest"; S = $ai },
+        @{ N = ([regex]::Unescape('\uD83D\uDCBB') + " Cursor / Copilot"); G = "urltest"; S = $cu },
+        @{ N = ([regex]::Unescape('\uD83E\uDD16') + " " + [regex]::Unescape('\u5176\u4ED6\u6D77\u5916') + "AI"); G = "urltest"; S = $ai },
+        @{ N = ([regex]::Unescape('\uD83C\uDF4E') + " " + [regex]::Unescape('\u82F9\u679C\u670D\u52A1')); G = "direct"; S = "direct_out" },
+        @{ N = ([regex]::Unescape('\uD83D\uDC19') + " GitHub"); G = "urltest"; S = $br },
+        @{ N = ([regex]::Unescape('\u2708\uFE0F') + " Telegram"); G = "urltest"; S = $br },
+        @{ N = ([regex]::Unescape('\uD83D\uDCFA') + " YouTube"); G = "urltest"; S = $br },
+        @{ N = ([regex]::Unescape('\uD83C\uDF0F') + " Google Play"); G = "urltest"; S = $br },
+        @{ N = ([regex]::Unescape('\uD83C\uDF0F') + " Google"); G = "urltest"; S = $br },
+        @{ N = ([regex]::Unescape('\uD83D\uDCFA') + " " + [regex]::Unescape('\u54D4\u54E9\u54D4\u54E9')); G = "direct"; S = "direct_out" },
+        @{ N = ([regex]::Unescape('\uD83C\uDFAF') + " " + [regex]::Unescape('\u56FD\u5185\u76F4\u8FDE')); G = "direct"; S = "direct_out" },
+        @{ N = ([regex]::Unescape('\uD83C\uDF0F') + " " + [regex]::Unescape('\u56FD\u5916\u7A7F\u5899')); G = "urltest"; S = $br }
+    )
+    foreach ($x in $named) {
+        [void]$rows.Add([pscustomobject]@{
+            GroupId        = "custom"
+            Name           = [string]$x.N
+            ServerGroupId  = [string]$x.G
+            ServerName     = [string]$x.S
+        })
+    }
+    [void]$rows.Add([pscustomobject]@{
+        GroupId       = "final"
+        Name          = ""
+        ServerGroupId = "urltest"
+        ServerName    = $br
+    })
+    return $rows.ToArray()
+}
+
 function Get-KaringNetBrowseDiversionNames {
-    $yt = [regex]::Unescape('\uD83D\uDCFA') + ' YouTube'
-    $gg = [regex]::Unescape('\uD83C\uDF0F') + ' Google'
-    return @($yt, $gg)
+    $br = Get-KaringNetBrowseUrltestRemark
+    $out = New-Object System.Collections.Generic.List[string]
+    foreach ($row in @(Get-KaringNetDesiredDiversions)) {
+        if ($row.Name -and $row.ServerName -eq $br) { [void]$out.Add([string]$row.Name) }
+    }
+    return $out.ToArray()
 }
 
 function Test-KaringNetEmptyBrowseGroup {
@@ -712,40 +758,112 @@ function Update-KaringNetSubscribeBrowseUrltestText {
     return (Update-KaringNetSubscribeUrltestTextByRemark -Raw $Raw -Remark (Get-KaringNetBrowseUrltestRemark) -Regexs $Regexs)
 }
 
-function Test-KaringNetBrowseDiversion {
+function Test-KaringNetMatchDesiredRow {
+    param($Item, $Want)
+    if ($null -eq $Item -or $null -eq $Want) { return $false }
+    if ([string]$Want.GroupId -eq "final") {
+        return ([string](Get-KaringNetNote $Item "diversion_groupid") -eq "final")
+    }
+    return ([string](Get-KaringNetNote $Item "diversion_name") -eq [string]$Want.Name)
+}
+
+function Test-KaringNetDesiredDiversion {
     param($Use)
     if ($null -eq $Use) { return $false }
-    $remark = Get-KaringNetBrowseUrltestRemark
     $items = @(Get-KaringNetNote $Use "diversion_group")
-    foreach ($want in @(Get-KaringNetBrowseDiversionNames)) {
+    foreach ($want in @(Get-KaringNetDesiredDiversions)) {
         $hit = $false
         foreach ($d in $items) {
-            if ([string](Get-KaringNetNote $d "diversion_name") -ne $want) { continue }
+            if (-not (Test-KaringNetMatchDesiredRow -Item $d -Want $want)) { continue }
             $hit = $true
-            if ([string](Get-KaringNetNote $d "server_groupid") -ne "urltest") { return $false }
-            if ([string](Get-KaringNetNote $d "server_name") -ne $remark) { return $false }
+            if ([string](Get-KaringNetNote $d "server_groupid") -ne [string]$want.ServerGroupId) { return $false }
+            if ([string](Get-KaringNetNote $d "server_name") -ne [string]$want.ServerName) { return $false }
         }
         if (-not $hit) { return $false }
     }
     return $true
 }
 
-function Set-KaringNetSubscribeUseBrowseDiversion {
+function Set-KaringNetSubscribeUseDiversion {
     param($Use)
     if ($null -eq $Use) { return $false }
-    $remark = Get-KaringNetBrowseUrltestRemark
-    $names = @(Get-KaringNetBrowseDiversionNames)
     $changed = $false
-    foreach ($d in @(Get-KaringNetNote $Use "diversion_group")) {
-        $n = [string](Get-KaringNetNote $d "diversion_name")
-        if ($names -notcontains $n) { continue }
-        if ([string](Get-KaringNetNote $d "server_groupid") -ne "urltest") {
-            $d | Add-Member -NotePropertyName server_groupid -NotePropertyValue "urltest" -Force
-            $changed = $true
+    $items = @(Get-KaringNetNote $Use "diversion_group")
+    foreach ($want in @(Get-KaringNetDesiredDiversions)) {
+        foreach ($d in $items) {
+            if (-not (Test-KaringNetMatchDesiredRow -Item $d -Want $want)) { continue }
+            if ([string](Get-KaringNetNote $d "server_groupid") -ne [string]$want.ServerGroupId) {
+                $d | Add-Member -NotePropertyName server_groupid -NotePropertyValue $want.ServerGroupId -Force
+                $changed = $true
+            }
+            if ([string](Get-KaringNetNote $d "server_name") -ne [string]$want.ServerName) {
+                $d | Add-Member -NotePropertyName server_name -NotePropertyValue $want.ServerName -Force
+                $changed = $true
+            }
         }
-        if ([string](Get-KaringNetNote $d "server_name") -ne $remark) {
-            $d | Add-Member -NotePropertyName server_name -NotePropertyValue $remark -Force
-            $changed = $true
+    }
+    return $changed
+}
+
+function Set-KaringNetSubscribeUseBrowseDiversion {
+    param($Use)
+    return (Set-KaringNetSubscribeUseDiversion -Use $Use)
+}
+
+function Test-KaringNetBrowseDiversion {
+    param($Use)
+    return (Test-KaringNetDesiredDiversion -Use $Use)
+}
+
+function Get-KaringNetRoutingGroupPath {
+    return (Join-Path $script:RuntimeDir "karing_routing_group.json")
+}
+
+function Get-KaringNetForeignProxyExtraRuleSets {
+    return @("geosite:google", "geoip:google")
+}
+
+function Get-KaringNetForeignProxyGroupName {
+    return ([regex]::Unescape('\uD83C\uDF0F') + " " + [regex]::Unescape('\u56FD\u5916\u7A7F\u5899'))
+}
+
+function Test-KaringNetRoutingGroupForeignProxy {
+    param($Routing)
+    if ($null -eq $Routing) { return $false }
+    $want = Get-KaringNetForeignProxyGroupName
+    $ban = @(Get-KaringNetForeignProxyExtraRuleSets)
+    $found = $false
+    foreach ($item in @(Get-KaringNetNote $Routing "items")) {
+        foreach ($g in @(Get-KaringNetNote $item "groups")) {
+            if ([string](Get-KaringNetNote $g "name") -ne $want) { continue }
+            $found = $true
+            $sets = @(Get-KaringNetNote $g "rule_set_build_in")
+            foreach ($b in $ban) {
+                if ($sets -contains $b) { return $false }
+            }
+        }
+    }
+    return $found
+}
+
+function Set-KaringNetRoutingGroupForeignProxy {
+    param($Routing)
+    if ($null -eq $Routing) { return $false }
+    $want = Get-KaringNetForeignProxyGroupName
+    $ban = @(Get-KaringNetForeignProxyExtraRuleSets)
+    $changed = $false
+    foreach ($item in @(Get-KaringNetNote $Routing "items")) {
+        foreach ($g in @(Get-KaringNetNote $item "groups")) {
+            if ([string](Get-KaringNetNote $g "name") -ne $want) { continue }
+            $sets = @(Get-KaringNetNote $g "rule_set_build_in")
+            $next = New-Object System.Collections.Generic.List[string]
+            foreach ($s in $sets) {
+                if ($ban -contains [string]$s) { $changed = $true; continue }
+                [void]$next.Add([string]$s)
+            }
+            if ($changed) {
+                $g | Add-Member -NotePropertyName rule_set_build_in -NotePropertyValue @($next) -Force
+            }
         }
     }
     return $changed
@@ -796,7 +914,8 @@ function Get-KaringNetProfileDrift {
         [string]$ProxyOverride,
         [string]$CursorProxySupport,
         $Subscribe,
-        $Use
+        $Use,
+        $Routing
     )
     $d = Get-KaringNetDesiredProfile
     $reasons = New-Object System.Collections.Generic.List[string]
@@ -863,6 +982,9 @@ function Get-KaringNetProfileDrift {
     if ($null -ne $Use -and -not (Test-KaringNetBrowseDiversion $Use)) {
         [void]$reasons.Add("browse.diversion")
     }
+    if ($null -ne $Routing -and -not (Test-KaringNetRoutingGroupForeignProxy $Routing)) {
+        [void]$reasons.Add("routing.foreign_google")
+    }
     return @($reasons)
 }
 
@@ -893,7 +1015,9 @@ function Sync-KaringNetProfile {
         [string]$SubscribePath,
         $Subscribe,
         [string]$UsePath,
-        $Use
+        $Use,
+        [string]$RoutingPath,
+        $Routing
     )
     if (-not (Lock-KaringNet -Command "sync" -TtlSec $script:LockTtlWriteSec)) {
         return [pscustomobject]@{ Ok = $false; Reason = "lock"; Wrote = $false; Drift = @() }
@@ -905,6 +1029,7 @@ function Sync-KaringNetProfile {
         if (-not $DockerSettingPath) { $DockerSettingPath = Join-Path $env:APPDATA "Docker\settings-store.json" }
         if (-not $SubscribePath) { $SubscribePath = Join-Path $script:RuntimeDir "karing_subscribe.json" }
         if (-not $UsePath) { $UsePath = Get-KaringNetUsePath }
+        if (-not $RoutingPath) { $RoutingPath = Get-KaringNetRoutingGroupPath }
         if ($null -eq $Setting -and (Test-Path -LiteralPath $SettingPath)) {
             $Setting = Get-Content -LiteralPath $SettingPath -Raw -Encoding UTF8 | ConvertFrom-Json
         }
@@ -913,6 +1038,9 @@ function Sync-KaringNetProfile {
         }
         if ($null -eq $Use -and (Test-Path -LiteralPath $UsePath)) {
             $Use = Get-Content -LiteralPath $UsePath -Raw -Encoding UTF8 | ConvertFrom-Json
+        }
+        if ($null -eq $Routing -and (Test-Path -LiteralPath $RoutingPath)) {
+            $Routing = Get-Content -LiteralPath $RoutingPath -Raw -Encoding UTF8 | ConvertFrom-Json
         }
         if ($PSBoundParameters.ContainsKey("ProxyEnable") -eq $false) {
             $reg = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
@@ -924,7 +1052,7 @@ function Sync-KaringNetProfile {
             $cur = Get-Content -LiteralPath $CursorSettingPath -Raw -Encoding UTF8 | ConvertFrom-Json
             $CursorProxySupport = [string]$cur."http.proxySupport"
         }
-        $drift = @(Get-KaringNetProfileDrift -Setting $Setting -ProxyEnable $ProxyEnable -ProxyServer $ProxyServer -ProxyOverride $ProxyOverride -CursorProxySupport $CursorProxySupport -Subscribe $Subscribe -Use $Use)
+        $drift = @(Get-KaringNetProfileDrift -Setting $Setting -ProxyEnable $ProxyEnable -ProxyServer $ProxyServer -ProxyOverride $ProxyOverride -CursorProxySupport $CursorProxySupport -Subscribe $Subscribe -Use $Use -Routing $Routing)
         if ($drift.Count -eq 0) {
             return [pscustomobject]@{ Ok = $true; Reason = "clean"; Wrote = $false; Drift = @() }
         }
@@ -967,9 +1095,15 @@ function Sync-KaringNetProfile {
             }
         }
         if ($null -ne $Use) {
-            $useChanged = Set-KaringNetSubscribeUseBrowseDiversion -Use $Use
+            $useChanged = Set-KaringNetSubscribeUseDiversion -Use $Use
             if ($useChanged) {
                 [System.IO.File]::WriteAllText($UsePath, (($Use | ConvertTo-Json -Depth 40) + "`r`n"), $utf8)
+            }
+        }
+        if ($null -ne $Routing) {
+            $routingChanged = Set-KaringNetRoutingGroupForeignProxy -Routing $Routing
+            if ($routingChanged) {
+                [System.IO.File]::WriteAllText($RoutingPath, (($Routing | ConvertTo-Json -Depth 20) + "`r`n"), $utf8)
             }
         }
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable -Value 1

@@ -22,8 +22,8 @@ description: >-
 | 命令 | 做什么 |
 |---|---|
 | `status` | 进程 + `127.0.0.1:3057` / `3067`。`-Api` 读并打印组名 |
-| `watch` | 计划任务每分钟：快照；Cursor 换组记下旧节点，满 5 分钟才按 id 关仍挂在旧链上的连接；踢信息节点；`自动优选` 组空则补非 GPT 节点；手动满 30 分钟回 urltest |
-| `sync` | 画像漂移才写盘，不重启。画像含 `auto_select` 容差 150 / 健康检查 300s，`Cursor自动` 组只留美、日 regex，`自动优选` 组只留港日新台且不含 GPT，YouTube / Google 分流走 `自动优选` |
+| `watch` | 计划任务每分钟：快照；Cursor 换组记下旧节点，满 5 分钟才按 id 关仍挂在旧链上的连接；URLTest 组不 PUT；手动满 30 分钟回 urltest |
+| `sync` | 画像漂移才写盘，不重启。画像含 auto_select 容差 150 / 健康检查 300s，三池 regex 不变，diversion 四车道（AI / Cursor / 直连 / 自动优选），final 走自动优选；国外穿墙匹配器不含 geosite:google。写盘后要核心按新规则工作必须 restart，由 Karing 编译 service_core，禁止手改该文件。 |
 | `restart` | 停 `karing` / `karingService`，拉计划任务 `Karing`，等端口 |
 
 登录任务 `Karing` 只负责拉起 `karing.exe`。`watch` 看到 3057 没齐就 `skip=ports`。
