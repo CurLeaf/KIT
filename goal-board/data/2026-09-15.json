@@ -1,0 +1,440 @@
+{
+  "schemaVersion": "1.1",
+  "meta": {
+    "title": "工程目标看板",
+    "period": "2026 年 9 月 15 日",
+    "week": 38,
+    "updatedAt": "2026-09-15T23:37:00+08:00"
+  },
+  "projects": [
+    {
+      "id": "proj-hotel-pms",
+      "title": "酒店PMS",
+      "features": [
+        {
+          "id": "feat-pms-root",
+          "title": "酒店PMS",
+          "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+          "features": [
+            {
+              "id": "feat-pms-channel-orders",
+              "title": "外部渠道订单",
+              "progress": 0,
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": [
+                {
+                  "id": "TASK-130",
+                  "title": "用连接器拉取",
+                  "progress": 0,
+                  "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" }
+                }
+              ]
+            },
+            {
+              "id": "feat-pms-style-bugs",
+              "title": "样式与日常缺陷",
+              "progress": 0,
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": []
+            },
+            {
+              "id": "feat-pms-elock-checkout",
+              "title": "电子门锁",
+              "progress": 0,
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": [
+                {
+                  "id": "TASK-131",
+                  "title": "确认退房是否删除",
+                  "progress": 0,
+                  "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" }
+                }
+              ]
+            }
+          ],
+          "tasks": []
+        }
+      ]
+    },
+    {
+      "id": "proj-xingtu",
+      "title": "兴图1.0",
+      "features": [
+        {
+          "id": "feat-xingtu-delivery",
+          "title": "兴图1.0",
+          "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+          "features": [
+            {
+              "id": "feat-xingtu-wechat-pay",
+              "title": "微信支付",
+              "progress": 0,
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": [
+                {
+                  "id": "TASK-119",
+                  "title": "用新参数测试",
+                  "progress": 0
+                }
+              ]
+            },
+            {
+              "id": "feat-xingtu-release",
+              "title": "集成上线",
+              "progress": 0,
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": [
+                {
+                  "id": "TASK-120",
+                  "title": "集成测试",
+                  "progress": 0
+                }
+              ]
+            }
+          ],
+          "tasks": []
+        }
+      ]
+    },
+    {
+      "id": "proj-xingtu-2",
+      "title": "兴图2.0",
+      "features": [
+        {
+          "id": "feat-xingtu2-root",
+          "title": "兴图2.0",
+          "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+          "features": [
+            {
+              "id": "feat-xingtu2-mixcut-expert",
+              "title": "混剪专家",
+              "progress": 0,
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": [
+                {
+                  "id": "TASK-132",
+                  "title": "智能混剪沉淀",
+                  "progress": 0,
+                  "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" }
+                }
+              ]
+            },
+            {
+              "id": "feat-xingtu2-mixcut-tts",
+              "title": "混剪 TTS",
+              "progress": 1,
+              "status": "completed",
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": []
+            },
+            {
+              "id": "feat-xingtu2-recharge",
+              "title": "充值体系",
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [
+                {
+                  "id": "feat-xingtu2-recharge-entry",
+                  "title": "充值入口",
+                  "progress": 0,
+                  "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+                  "features": [],
+                  "tasks": [
+                    {
+                      "id": "TASK-123",
+                      "title": "去掉 200 上限，改为自定义金额",
+                      "progress": 0
+                    }
+                  ]
+                }
+              ],
+              "tasks": []
+            }
+          ],
+          "tasks": []
+        }
+      ]
+    },
+    {
+      "id": "proj-kexiaoda",
+      "title": "课小搭",
+      "features": [
+        {
+          "id": "feat-kexiaoda-root",
+          "title": "课小搭",
+          "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+          "features": [
+            {
+              "id": "feat-kexiaoda-douyin",
+              "title": "抖音课件",
+              "progress": 0,
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": [
+                {
+                  "id": "TASK-133",
+                  "title": "智能剪辑已发布作品",
+                  "progress": 0,
+                  "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" }
+                }
+              ]
+            }
+          ],
+          "tasks": []
+        }
+      ]
+    },
+    {
+      "id": "proj-silu",
+      "title": "思鹭",
+      "features": [
+        {
+          "id": "feat-silu-root",
+          "title": "思鹭",
+          "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+          "features": [
+            {
+              "id": "feat-silu-video",
+              "title": "视频课件",
+              "progress": 0,
+              "owner": { "id": "user-weipeng", "name": "伟鹏", "role": "工程" },
+              "features": [],
+              "tasks": [
+                {
+                  "id": "TASK-124",
+                  "title": "湖心亭看雪",
+                  "progress": 1
+                }
+              ]
+            }
+          ],
+          "tasks": []
+        }
+      ]
+    },
+    {
+      "id": "proj-qunxing",
+      "title": "群兴系统",
+      "features": [
+        {
+          "id": "feat-qunxing-root",
+          "title": "群兴系统",
+          "features": [
+            {
+              "id": "feat-qunxing-compute-screen",
+              "title": "算力数字大屏",
+              "progress": 0,
+              "owner": { "id": "user-yexinwei", "name": "鑫伟", "role": "工程" },
+              "features": [],
+              "tasks": []
+            },
+            {
+              "id": "feat-qunxing-franchise-bill",
+              "title": "加盟商账单",
+              "owner": { "id": "user-yexinwei", "name": "鑫伟", "role": "工程" },
+              "features": [
+                {
+                  "id": "feat-qunxing-franchise-ops-bill",
+                  "title": "经营账单",
+                  "progress": 0,
+                  "owner": { "id": "user-yexinwei", "name": "鑫伟", "role": "工程" },
+                  "features": [],
+                  "tasks": []
+                },
+                {
+                  "id": "feat-qunxing-franchise-platform-bill",
+                  "title": "平台账单",
+                  "progress": 0,
+                  "owner": { "id": "user-yexinwei", "name": "鑫伟", "role": "工程" },
+                  "features": [],
+                  "tasks": []
+                }
+              ],
+              "tasks": []
+            },
+            {
+              "id": "feat-qunxing-platform",
+              "title": "平台对接",
+              "features": [
+                {
+                  "id": "feat-qunxing-cipher-push",
+                  "title": "密文推单",
+                  "progress": 0,
+                  "owner": { "id": "user-wangshuda", "name": "书达", "role": "工程" },
+                  "features": [],
+                  "tasks": []
+                },
+                {
+                  "id": "feat-qunxing-taobao-1688",
+                  "title": "淘宝-1688密文推单",
+                  "progress": 0,
+                  "owner": { "id": "user-wangshuda", "name": "书达", "role": "工程" },
+                  "features": [],
+                  "tasks": []
+                },
+                {
+                  "id": "feat-qunxing-weixin-shop",
+                  "title": "微信小店",
+                  "owner": { "id": "user-jiasong", "name": "嘉松", "role": "工程" },
+                  "features": [
+                    {
+                      "id": "feat-qunxing-weixin-card",
+                      "title": "商品卡编辑",
+                      "progress": 0,
+                      "owner": { "id": "user-jiasong", "name": "嘉松", "role": "工程" },
+                      "features": [],
+                      "tasks": []
+                    },
+                    {
+                      "id": "feat-qunxing-weixin-list",
+                      "title": "商品上架",
+                      "progress": 0,
+                      "owner": { "id": "user-jiasong", "name": "嘉松", "role": "工程" },
+                      "features": [],
+                      "tasks": []
+                    }
+                  ],
+                  "tasks": []
+                },
+                {
+                  "id": "feat-qunxing-mercado",
+                  "title": "美克多接入探索",
+                  "progress": 0,
+                  "owner": { "id": "user-jiasong", "name": "嘉松", "role": "工程" },
+                  "features": [],
+                  "tasks": []
+                },
+                {
+                  "id": "feat-qunxing-pdd",
+                  "title": "拼多多对接",
+                  "owner": { "id": "user-zihang", "name": "梓杭", "role": "工程" },
+                  "features": [
+                    {
+                      "id": "feat-qunxing-pdd-qualify",
+                      "title": "拼多多的服务商资质申请",
+                      "progress": 0,
+                      "owner": { "id": "user-zihang", "name": "梓杭", "role": "工程" },
+                      "features": [],
+                      "tasks": []
+                    }
+                  ],
+                  "tasks": []
+                }
+              ],
+              "tasks": []
+            },
+            {
+              "id": "feat-qunxing-ozon-stable",
+              "title": "ozon 采集插件",
+              "owner": { "id": "user-junbo", "name": "俊波", "role": "工程" },
+              "features": [
+                {
+                  "id": "feat-qunxing-ozon-cookie",
+                  "title": "Cookie 失效机制",
+                  "progress": 0,
+                  "owner": { "id": "user-junbo", "name": "俊波", "role": "工程" },
+                  "features": [],
+                  "tasks": []
+                }
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-121",
+                  "title": "督促运营激活",
+                  "progress": 0,
+                  "owner": { "id": "user-junbo", "name": "俊波", "role": "工程" }
+                }
+              ]
+            },
+            {
+              "id": "feat-qunxing-app",
+              "title": "鸿蒙 APP",
+              "features": [
+                {
+                  "id": "feat-qunxing-flutter",
+                  "title": "Flutter 框架",
+                  "progress": 0,
+                  "owner": { "id": "user-huabin", "name": "华彬", "role": "工程" },
+                  "features": [],
+                  "tasks": []
+                },
+                {
+                  "id": "feat-qunxing-harmony-store",
+                  "title": "应用商城资质",
+                  "progress": 0,
+                  "owner": { "id": "user-zihang", "name": "梓杭", "role": "工程" },
+                  "features": [],
+                  "tasks": [
+                    {
+                      "id": "TASK-122",
+                      "title": "账号信息申请中",
+                      "progress": 0
+                    }
+                  ]
+                }
+              ],
+              "tasks": []
+            },
+            {
+              "id": "feat-qunxing-warehouse-copyright",
+              "title": "仓库软著",
+              "progress": 0,
+              "owner": { "id": "user-zihang", "name": "梓杭", "role": "工程" },
+              "features": [],
+              "tasks": []
+            }
+          ],
+          "tasks": []
+        }
+      ]
+    },
+    {
+      "id": "proj-cashier",
+      "title": "收银系统",
+      "features": [
+        {
+          "id": "feat-cashier-root",
+          "title": "收银系统",
+          "features": [
+            {
+              "id": "feat-cashier-research",
+              "title": "系统调研",
+              "progress": 0,
+              "owner": { "id": "user-lukaijie", "name": "凯杰", "role": "工程" },
+              "features": [],
+              "tasks": []
+            }
+          ],
+          "tasks": []
+        }
+      ]
+    },
+    {
+      "id": "proj-private-mall",
+      "title": "私域商城",
+      "features": [
+        {
+          "id": "feat-private-mall-root",
+          "title": "私域商城",
+          "features": [
+            {
+              "id": "feat-private-mall-arch",
+              "title": "架构调整",
+              "progress": 0,
+              "owner": { "id": "user-yexinwei", "name": "鑫伟", "role": "工程" },
+              "features": [],
+              "tasks": []
+            }
+          ],
+          "tasks": []
+        }
+      ]
+    }
+  ]
+}

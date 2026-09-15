@@ -35,7 +35,7 @@ description: >-
 | `pack` | 当句点名 | 起 Ubuntu docker、自动 hold、在 WSL 跑剩余参数、再 apply |
 | `park` | 当句点名 | `-Dev` 才停 vinext/uni/Playwright Chrome |
 | `purge` | 当句点名 | 卸 Desktop、删 VHDX、写 `.wslconfig` 3GB/4 核。约 85GB 缓存不可恢复 |
-| `install` | 当句点名 | Desktop 残留则失败并提示 purge；否则注册 watch、装 Windows `docker.exe`（转到 Ubuntu docker，不暴露 2375）并 apply |
+| `install` | 当句点名 | Desktop 残留则失败并提示 purge；否则注册 watch 并 apply |
 
 ## 默认只 status
 

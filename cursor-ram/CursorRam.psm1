@@ -435,18 +435,18 @@ function Invoke-CursorRamPack {
         [string]$WorkingDirectory
     )
     if ($null -eq $Arguments) { $Arguments = @() }
-    $args = @($Arguments)
-    if ($args.Count -gt 0 -and $args[0] -eq "--") {
-        $args = @($args | Select-Object -Skip 1)
+    $packArgs = @($Arguments)
+    if ($packArgs.Count -gt 0 -and $packArgs[0] -eq "--") {
+        $packArgs = @($packArgs | Select-Object -Skip 1)
     }
-    if ($args.Count -lt 1) {
+    if ($packArgs.Count -lt 1) {
         return [pscustomobject]@{ Ok = $false; Reason = "no-command"; WslCwd = $null; Command = $null; ExitCode = 1 }
     }
     if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) {
         $WorkingDirectory = (Get-Location).Path
     }
     $cwd = ConvertTo-CursorRamWslPath $WorkingDirectory
-    $cmd = ($args -join " ")
+    $cmd = ($packArgs -join " ")
     if (-not (Lock-CursorRam -Command "pack" -TtlSec 7200)) {
         return [pscustomobject]@{ Ok = $false; Reason = "lock"; WslCwd = $cwd; Command = $cmd; ExitCode = 3 }
     }
@@ -637,18 +637,12 @@ function Install-CursorRamHost {
         "/Create", "/TN", $script:WatchLogonTask, "/TR", $watchTr,
         "/SC", "ONLOGON", "/RL", "HIGHEST", "/F"
     ))
-    $docker = Install-CursorRamDockerHost
     $apply = Invoke-CursorRamApply
-    $ok = [bool]$watchOk -and [bool]$docker.Ok
-    $reason = "ok"
-    if (-not $watchOk) { $reason = "task" }
-    elseif (-not $docker.Ok) { $reason = [string]$docker.Reason }
     return [pscustomobject]@{
-        Ok        = $ok
-        Reason    = $reason
+        Ok        = [bool]$watchOk
+        Reason    = $(if ($watchOk) { "ok" } else { "task" })
         WatchTask = [bool]$watchOk
         Apply     = [bool]$apply.Ok
-        Docker    = [bool]$docker.Ok
     }
 }
 

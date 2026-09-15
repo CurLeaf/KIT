@@ -1,6 +1,6 @@
 # 目标看板
 
-静态页，无构建。三列现代看板（讨论 / 开发 / 验收）展示当日目标。每天的 json 数据都是不同的 json，并且今日只用当前的 json。
+静态页，无构建。首页是今日项目的文件缩略图；点进去是树形图。每天的 json 数据都是不同的 json，并且今日只用当前的 json。
 
 ## 启动
 
@@ -27,29 +27,33 @@ python serve.py
 
 | 路径 | 职责 |
 |---|---|
-| `index.html` | 页架与三列 |
-| `styles.css` | 三列卡片 |
+| `index.html` | 页架 |
+| `styles.css` | 文件缩略图 / 树形图 |
 | `engine.js` | 纯函数，Node 与浏览器共用 |
 | `engine_test.js` | `node --test` |
-| `app.js` | 拉今日 JSON、按阶段贴便签 |
+| `app.js` | 拉今日 JSON、文件网格与树视图 |
 | `data/YYYY-MM-DD.json` | 当日数据 |
 
 ## JSON
 
-`schemaVersion` 为 `"1.0"`。`id`、`status`、`target.type` 保持英文；可见文案用中文。
+`schemaVersion` 为 `"1.1"`。非 1.1 或没有 `projects` 时加载失败，不读旧 `goals[]`。
+
+`id`、`status`、`stage` 保持英文；可见文案用中文。
+
+结构：`projects[]` → `features[]`（目标节点，可再嵌套 `features`）→ `tasks[]`（该节点的处理/探索）。每个 project 是一张缩略图；点进去的树只画目标节点，始终展开。处理挂在节点上，可折叠。
+
+同层左右顺序 = JSON 数组顺序。不要为了排版去改顺序。目标叶子进度为 `0` 或 `1`，非叶子显示子孙目标叶子之和。处理行也是 `0`/`1`。
 
 `status`：`at_risk` / `on_track` / `completed`。
 
-`target.type`：`duration` / `percentage` / `count` / `milestone` / `boolean`。
+`stage`：`discuss` / `develop` / `accept`（数据字段，树节点上不画阶段列）。
 
-排序只走 `sortGoals`（风险在前），列分桶走 `goalsByStage`，不要按负责人分组。已完成不进三列。
+进度写在目标叶子 `progress`（`0` 或 `1`）上，非叶子显示子孙目标叶子之和。处理是另一套数据，写在 `tasks` 里。已完成留在树里。
 
 ## 测试
 
 ```
 node --test goal-board/engine_test.js
 ```
-
-`prefers-reduced-motion: reduce` 时不旋转便签。
 
 实现与改数据时按 `.cursor/skills/goal-board/SKILL.md`。

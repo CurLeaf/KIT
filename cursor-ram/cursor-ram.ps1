@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("status", "apply", "watch", "hold", "pack", "park", "purge", "install", "ensure-docker")]
+    [ValidateSet("status", "apply", "watch", "hold", "pack", "park", "purge", "install")]
     [string]$Command = "status",
     [switch]$Dev,
     [int]$Hours = 2,
@@ -62,14 +62,7 @@ switch ($Command) {
     }
     "install" {
         $r = Install-CursorRamHost
-        Write-Host ("install ok={0} reason={1} watchTask={2} apply={3} docker={4}" -f [int]$r.Ok, $r.Reason, [int]$r.WatchTask, [int]$r.Apply, [int]$r.Docker)
-        if (-not $r.Ok) { exit 1 }
-        exit 0
-    }
-    "ensure-docker" {
-        $r = Invoke-CursorRamEnsureDocker
-        Write-Host ("ensure-docker ok={0} reason={1}" -f [int]$r.Ok, $r.Reason)
-        if ($r.Reason -eq "lock") { exit 3 }
+        Write-Host ("install ok={0} reason={1} watchTask={2} apply={3}" -f [int]$r.Ok, $r.Reason, [int]$r.WatchTask, [int]$r.Apply)
         if (-not $r.Ok) { exit 1 }
         exit 0
     }

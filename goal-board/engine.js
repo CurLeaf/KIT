@@ -125,15 +125,405 @@ function paginate(items, pageSize) {
   return pages
 }
 
-function summarize(goals) {
-  const total = goals.length
-  const onTrack = goals.filter((g) => g.status === 'on_track').length
-  const completed = goals.filter((g) => g.status === 'completed').length
-  const atRisk = goals.filter((g) => g.status === 'at_risk').length
-  const overall = total
-    ? Math.round(goals.reduce((sum, g) => sum + (g.progress == null ? 0 : g.progress), 0) / total)
-    : 0
-  return { total, overall, onTrack, completed, atRisk }
+function treeChildren(parent) {
+  const rows = []
+  if (!parent) return rows
+  const features = parent.features || []
+  for (let i = 0; i < features.length; i += 1) {
+    rows.push({ kind: 'feature', item: features[i] })
+  }
+  return rows
+}
+
+function nodeProcessings(parent) {
+  if (!parent) return []
+  return (parent.tasks || []).slice()
+}
+
+function previewNode(kind, item, depth, maxDepth, maxChildren) {
+  const all = kind === 'task' || !item ? [] : treeChildren(item)
+  const node = {
+    kind,
+    id: item && item.id,
+    title: (item && item.title) || '',
+    ownerName: (item && item.owner && item.owner.name) || '',
+    progress: nodeProgress(kind, item),
+    leafCount: nodeLeafCount(kind, item),
+    leaf: all.length === 0,
+    children: [],
+    omitted: 0,
+  }
+  if (kind === 'task' || !item) return node
+  if (depth >= maxDepth) {
+    node.omitted = all.length
+    return node
+  }
+  const extra = Math.max(0, all.length - maxChildren)
+  const take = all.slice(0, maxChildren)
+  node.omitted = extra
+  for (let i = 0; i < take.length; i += 1) {
+    node.children.push(previewNode(take[i].kind, take[i].item, depth + 1, maxDepth, maxChildren))
+  }
+  return node
+}
+
+function previewTree(project, options) {
+  const maxDepth = options && options.maxDepth != null ? options.maxDepth : 2
+  const maxChildren = options && options.maxChildren != null ? options.maxChildren : 4
+  if (!project) {
+    return {
+      kind: 'project',
+      id: undefined,
+      title: '',
+      ownerName: '',
+      progress: 0,
+      leafCount: 0,
+      leaf: true,
+      children: [],
+      omitted: 0,
+    }
+  }
+  return previewNode('project', project, 0, maxDepth, maxChildren)
+}
+
+function readProjects(data) {
+  if (!data || data.schemaVersion !== '1.1' || !Array.isArray(data.projects)) {
+    throw new Error('unsupported schema')
+  }
+  return data.projects
+}
+
+function isLeafNode(kind, item) {
+  if (!item) return true
+  if (kind === 'task') return true
+  return treeChildren(item).length === 0
+}
+
+function nodeProgress(kind, item) {
+  if (!item) return 0
+  if (isLeafNode(kind, item)) return item.progress === 1 ? 1 : 0
+  const kids = treeChildren(item)
+  let sum = 0
+  for (let i = 0; i < kids.length; i += 1) {
+    sum += nodeProgress(kids[i].kind, kids[i].item)
+  }
+  return sum
+}
+
+function nodeLeafCount(kind, item) {
+  if (!item) return 0
+  if (isLeafNode(kind, item)) return 1
+  const kids = treeChildren(item)
+  let n = 0
+  for (let i = 0; i < kids.length; i += 1) {
+    n += nodeLeafCount(kids[i].kind, kids[i].item)
+  }
+  return n
+}
+
+function nodeCount(kind, item) {
+  if (!item || kind === 'task') return 0
+  const kids = treeChildren(item)
+  let n = kind === 'project' ? 0 : 1
+  for (let i = 0; i < kids.length; i += 1) {
+    n += nodeCount(kids[i].kind, kids[i].item)
+  }
+  return n
+}
+
+function nodeFill(kind, item) {
+  if (!item) return 'zero'
+  const done = nodeProgress(kind, item)
+  if (isLeafNode(kind, item)) return done === 1 ? 'full' : 'zero'
+  const leaves = nodeLeafCount(kind, item)
+  if (!leaves || done <= 0) return 'zero'
+  if (done >= leaves) return 'full'
+  return 'part'
+}
+
+function isNodeOpen(id, hasKids, hasProc, collapsed) {
+  if (!id || (!hasKids && !hasProc)) return false
+  if (collapsed && Object.prototype.hasOwnProperty.call(collapsed, id)) {
+    return !collapsed[id]
+  }
+  return !!hasKids
+}
+
+function foldableIds(kind, item, acc) {
+  const out = acc || []
+  if (!item || kind === 'task') return out
+  const kids = treeChildren(item)
+  const procs = nodeProcessings(item)
+  const id = item.id != null ? String(item.id) : ''
+  if (id && (kids.length > 0 || procs.length > 0)) out.push(id)
+  for (let i = 0; i < kids.length; i += 1) {
+    foldableIds(kids[i].kind, kids[i].item, out)
+  }
+  return out
+}
+
+function setAllCollapsed(kind, item, closed) {
+  const ids = foldableIds(kind, item)
+  const next = {}
+  for (let i = 0; i < ids.length; i += 1) next[ids[i]] = !!closed
+  return next
+}
+
+function mapLayout(kind, item, options) {
+  const opts = options || {}
+  const gapX = opts.gapX != null ? opts.gapX : 56
+  const gapY = opts.gapY != null ? opts.gapY : 16
+  const nodeW = opts.nodeW != null ? opts.nodeW : 180
+  const nodeH = opts.nodeH != null ? opts.nodeH : 56
+  const procW = opts.procW != null ? opts.procW : 160
+  const procH = opts.procH != null ? opts.procH : 40
+  const collapsed = opts.collapsed || {}
+  if (!item) return { nodes: [], edges: [], width: 0, height: 0 }
+
+  function sizeOf(k) {
+    if (k === 'task') return { w: procW, h: procH }
+    return { w: nodeW, h: nodeH }
+  }
+
+  function measure(k, row) {
+    const box = sizeOf(k)
+    const kids = k === 'task' ? [] : treeChildren(row)
+    const procs = k === 'task' ? [] : nodeProcessings(row)
+    const id = row && row.id != null ? String(row.id) : ''
+    const open = isNodeOpen(id, kids.length > 0, procs.length > 0, collapsed)
+    const branches = []
+    if (open) {
+      for (let i = 0; i < procs.length; i += 1) {
+        branches.push({ kind: 'task', item: procs[i], sub: measure('task', procs[i]) })
+      }
+      for (let i = 0; i < kids.length; i += 1) {
+        branches.push({
+          kind: kids[i].kind,
+          item: kids[i].item,
+          sub: measure(kids[i].kind, kids[i].item),
+        })
+      }
+    }
+    if (!branches.length) {
+      return { w: box.w, h: box.h, nw: box.w, nh: box.h, open, branches, id, kind: k }
+    }
+    let colH = 0
+    let colW = 0
+    for (let i = 0; i < branches.length; i += 1) {
+      if (i) colH += gapY
+      colH += branches[i].sub.h
+      if (branches[i].sub.w > colW) colW = branches[i].sub.w
+    }
+    return {
+      w: box.w + gapX + colW,
+      h: Math.max(box.h, colH),
+      nw: box.w,
+      nh: box.h,
+      open,
+      branches,
+      id,
+      kind: k,
+      colH,
+    }
+  }
+
+  const nodes = []
+  const edges = []
+
+  function stamp(k, row, x, y) {
+    const leaf = k === 'task' ? true : isLeafNode(k, row)
+    const procs = k === 'task' ? [] : nodeProcessings(row)
+    return {
+      id: row && row.id != null ? String(row.id) : '',
+      kind: k,
+      title: (row && row.title) || '',
+      ownerName: (row && row.owner && row.owner.name) || '',
+      x,
+      y,
+      w: k === 'task' ? procW : nodeW,
+      h: k === 'task' ? procH : nodeH,
+      fill: nodeFill(k, row),
+      progress: nodeProgress(k, row),
+      leafCount: nodeLeafCount(k, row),
+      leaf,
+      hasKids: k !== 'task' && treeChildren(row).length > 0,
+      hasProc: procs.length > 0,
+      procCount: procs.length,
+      open: false,
+      proc: k === 'task',
+    }
+  }
+
+  function place(k, row, tree, x, y) {
+    const boxY = y + (tree.h - tree.nh) / 2
+    const node = stamp(k, row, x, boxY)
+    node.open = tree.open
+    nodes.push(node)
+    if (!tree.branches.length) return
+    let cy = y + (tree.h - tree.colH) / 2
+    const cx = x + tree.nw + gapX
+    for (let i = 0; i < tree.branches.length; i += 1) {
+      const b = tree.branches[i]
+      const childId = b.item && b.item.id != null ? String(b.item.id) : ''
+      edges.push({ fromId: node.id, toId: childId, dashed: b.kind === 'task' })
+      place(b.kind, b.item, b.sub, cx, cy)
+      cy += b.sub.h + gapY
+    }
+  }
+
+  const tree = measure(kind, item)
+  place(kind, item, tree, 0, 0)
+  return { nodes, edges, width: tree.w, height: tree.h }
+}
+
+function mapLinkPath(from, to) {
+  if (!from || !to) return ''
+  const x1 = from.x + from.w
+  const y1 = from.y + from.h / 2
+  const x2 = to.x
+  const y2 = to.y + to.h / 2
+  const mx = (x1 + x2) / 2
+  return `M${x1} ${y1} H${mx} V${y2} H${x2}`
+}
+
+function clampZoom(z) {
+  const n = Number(z)
+  if (!Number.isFinite(n)) return 1
+  if (n < 0.5) return 0.5
+  if (n > 1.5) return 1.5
+  return n
+}
+
+function panCam(cam, dx, dy) {
+  const z = clampZoom(cam && cam.z)
+  return {
+    x: ((cam && cam.x) || 0) + (Number(dx) || 0),
+    y: ((cam && cam.y) || 0) + (Number(dy) || 0),
+    z,
+  }
+}
+
+function zoomCam(cam, factor, px, py) {
+  const x = (cam && cam.x) || 0
+  const y = (cam && cam.y) || 0
+  const z = clampZoom(cam && cam.z)
+  const z2 = clampZoom(z * (Number(factor) || 1))
+  if (!z) return { x, y, z: z2 }
+  const cx = Number(px) || 0
+  const cy = Number(py) || 0
+  return {
+    x: cx - ((cx - x) * z2) / z,
+    y: cy - ((cy - y) * z2) / z,
+    z: z2,
+  }
+}
+
+function descendantTasks(feature) {
+  if (!feature) return []
+  const rows = []
+  const tasks = feature.tasks || []
+  for (let i = 0; i < tasks.length; i += 1) rows.push(tasks[i])
+  const children = feature.features || []
+  for (let i = 0; i < children.length; i += 1) {
+    const nested = descendantTasks(children[i])
+    for (let j = 0; j < nested.length; j += 1) rows.push(nested[j])
+  }
+  return rows
+}
+
+function collectFeatureTasks(features, ctx) {
+  const rows = []
+  const list = features || []
+  for (let i = 0; i < list.length; i += 1) {
+    const f = list[i]
+    const tasks = f.tasks || []
+    for (let j = 0; j < tasks.length; j += 1) {
+      rows.push({
+        ...tasks[j],
+        projectId: ctx.projectId,
+        projectTitle: ctx.projectTitle,
+        featureId: f.id,
+        featureTitle: f.title,
+        featureOwner: f.owner || null,
+      })
+    }
+    const nested = collectFeatureTasks(f.features, ctx)
+    for (let k = 0; k < nested.length; k += 1) rows.push(nested[k])
+  }
+  return rows
+}
+
+function flattenTasks(projects) {
+  const rows = []
+  const list = projects || []
+  for (let i = 0; i < list.length; i += 1) {
+    const p = list[i]
+    const nested = collectFeatureTasks(p.features, {
+      projectId: p.id,
+      projectTitle: p.title,
+    })
+    for (let j = 0; j < nested.length; j += 1) rows.push(nested[j])
+  }
+  return rows
+}
+
+function rollupProgress(tasks) {
+  const list = tasks || []
+  if (!list.length) return 0
+  let sum = 0
+  for (let i = 0; i < list.length; i += 1) {
+    const p = list[i].progress
+    sum += p == null ? 0 : p
+  }
+  return Math.round(sum / list.length)
+}
+
+function rollupStatus(tasks) {
+  const list = tasks || []
+  if (!list.length) return 'on_track'
+  let allCompleted = true
+  for (let i = 0; i < list.length; i += 1) {
+    if (list[i].status === 'at_risk') return 'at_risk'
+    if (list[i].status !== 'completed') allCompleted = false
+  }
+  return allCompleted ? 'completed' : 'on_track'
+}
+
+function summarize(projects) {
+  const list = projects || []
+  const tasks = flattenTasks(list)
+  const total = tasks.length
+  const onTrack = tasks.filter((g) => g.status === 'on_track').length
+  const completed = tasks.filter((g) => g.status === 'completed').length
+  const atRisk = tasks.filter((g) => g.status === 'at_risk').length
+  return {
+    projects: list.length,
+    tasks: total,
+    total,
+    overall: rollupProgress(tasks),
+    onTrack,
+    completed,
+    atRisk,
+  }
+}
+
+function compareRollup(tasksA, tasksB) {
+  const rankA = STATUS_RANK[rollupStatus(tasksA)] != null ? STATUS_RANK[rollupStatus(tasksA)] : 99
+  const rankB = STATUS_RANK[rollupStatus(tasksB)] != null ? STATUS_RANK[rollupStatus(tasksB)] : 99
+  if (rankA !== rankB) return rankA - rankB
+  return rollupProgress(tasksA) - rollupProgress(tasksB)
+}
+
+function sortProjects(projects) {
+  return (projects || []).slice().sort((a, b) => (
+    compareRollup(flattenTasks([a]), flattenTasks([b]))
+  ))
+}
+
+function sortFeatures(features) {
+  return (features || []).slice().sort((a, b) => (
+    compareRollup(descendantTasks(a), descendantTasks(b))
+  ))
 }
 
 function formatTarget(target) {
@@ -312,6 +702,28 @@ function ratchetTop(fromSnap, rowHeight, elapsed, holdMs, moveMs, loopHeight) {
 }
 
 const GoalEngine = {
+  readProjects,
+  treeChildren,
+  nodeProcessings,
+  previewTree,
+  nodeProgress,
+  nodeLeafCount,
+  nodeCount,
+  nodeFill,
+  isNodeOpen,
+  foldableIds,
+  setAllCollapsed,
+  mapLayout,
+  mapLinkPath,
+  clampZoom,
+  panCam,
+  zoomCam,
+  flattenTasks,
+  descendantTasks,
+  rollupProgress,
+  rollupStatus,
+  sortProjects,
+  sortFeatures,
   sortGoals,
   goalsByStage,
   focusScore,
