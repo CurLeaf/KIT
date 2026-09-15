@@ -841,15 +841,12 @@ function Invoke-CursorUpdateSchtasks {
 
 function Invoke-CursorUpdateWatch {
     $fetched = $false
-    $status = Get-CursorUpdateStatus
-    if ($status.Reason -eq "unknown-latest" -or $status.Reason -eq "need-fetch") {
-        $f = Invoke-CursorUpdateFetch
-        $fetched = ($f.Reason -eq "downloaded" -or $f.Reason -eq "have")
-        if ($f.Reason -eq "lock") {
-            return [pscustomobject]@{ Ok = $false; Fetched = $false; Toast = $false; Reason = "lock" }
-        }
-        $status = Get-CursorUpdateStatus
+    $f = Invoke-CursorUpdateFetch
+    $fetched = ($f.Reason -eq "downloaded" -or $f.Reason -eq "have")
+    if ($f.Reason -eq "lock") {
+        return [pscustomobject]@{ Ok = $false; Fetched = $false; Toast = $false; Reason = "lock" }
     }
+    $status = Get-CursorUpdateStatus
     $toast = $false
     if (Test-CursorUpdateToastNeeded $status) {
         $toast = Show-CursorUpdateToast ([string]$status.PackageVersion)
